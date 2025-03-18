@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>開源桌遊配套平台</title>
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <!-- Noto Serif SC & Noto Sans SC -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Noto Sans SC', 'Noto Serif SC', sans-serif;
+      background: transparent;
+    }
+    /* 背景：黑底+彩色模糊動畫 */
+    #background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      z-index: -3;
+      overflow: hidden;
+    }
+    #background::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,0,150,0.3), rgba(0,255,150,0.3), rgba(150,0,255,0.3));
+      filter: blur(120px);
+      animation: pulse 8s infinite alternate;
+      z-index: -2;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.2); }
+    }
+    /* Three.js 渲染容器 */
+    #container {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+      z-index: 0;
+    }
+    /* 側邊欄 */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 60px;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      overflow: hidden;
+      transition: width 0.3s ease;
+      z-index: 9999;
+      text-align: center;
+      cursor: pointer;
+    }
+    .sidebar h2 {
+      margin: 20px 0;
+      font-size: 1.2rem;
+      line-height: 1.2;
+    }
+    .sidebar h2 span {
+      display: block;
+    }
+    /* 桌機版：滑鼠懸停展開 */
+    @media (hover: hover) and (pointer: fine) {
+      .sidebar:hover {
+        width: 220px;
+      }
+      .sidebar:hover .extra {
+        display: block;
+      }
+    }
+    /* 手機版：點擊展開 */
+    .sidebar.open {
+      width: 220px;
+    }
+    .sidebar.open .extra {
+      display: block;
+    }
+    .sidebar .extra {
+      display: none;
+      padding: 0 10px 20px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .sidebar a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+    .sidebar a:hover {
+      text-decoration: underline;
+    }
+    /* 頁面切換按鈕與懸浮標籤 */
+    .page-switch {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .page-switch-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .page-label {
+      min-width: 120px;
+      text-align: right;
+      margin-right: 16px;
+      color: rgba(255,255,255,0.9);
+      font-size: 1.2rem;
+      animation: float 2s infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+      100% { transform: translateY(0); }
+    }
+    .page-switch button {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+    .page-switch button:hover {
+      background: #2563eb;
+      transform: scale(1.1);
+    }
+    /* 操作提示 */
+    .tooltip {
+      position: fixed;
+      max-width: 15%;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 12px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      z-index: 20;
+      opacity: 1;
+    }
+    /* 第一頁介紹 */
+    #page1Intro {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 20px 30px;
+      border-radius: 12px;
+      text-align: center;
+      z-index: 10;
+      max-width: 90%;
+    }
+    #page1Intro h1 {
+      font-size: 2.25rem;
+      margin-bottom: 0.5rem;
+    }
+    #page1Intro p {
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    /* 第二頁信息展示 */
+    #page2Info {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+      z-index: 20;
+      background: rgba(0,0,0,0.6);
+      border-radius: 10px;
+      font-size: 1.1rem;
+      display: none;
+      max-width: 90%;
+    }
+    /* 模組截圖 */
+    #moduleScreenshot {
+      position: fixed;
+      bottom: 20px;
+      left: 80px;
+      max-width: 30%;
+      z-index: 20;
+      border: 3px solid #3b82f6;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #000;
+      display: none;
+      transition: left 0.3s ease;
+    }
+    .sidebar.open ~ #moduleScreenshot {
+      left: 240px;
+    }
+    /* 箭頭提示 */
+    .arrow {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #3b82f6;
+      font-size: 2rem;
+      z-index: 100;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+    #arrowLeft { left: 20%; }
+    #arrowRight { right: 20%; }
+    
+    /* 響應式調整 */
+    @media (max-width: 768px) {
+      #page1Intro h1 { font-size: 1.75rem; }
+      #page1Intro p { font-size: 0.9rem; }
+      #page2Info { font-size: 0.9rem; }
+      #moduleScreenshot { width: 35%; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 背景動畫 -->
+  <div id="background"></div>
+  <!-- Three.js 渲染容器 -->
+  <div id="container"></div>
+  
+  <!-- 側邊欄 -->
+  <div class="sidebar" id="sidebar">
+    <h2>
+      <span>關</span>
+      <span>於</span>
+      <span>本</span>
+      <span>項</span>
+      <span>目</span>
+    </h2>
+    <div class="extra">
+      <p>這是一個開源自定義桌遊配套平台，旨在通過虛擬骰子與分數記錄格等遊戲模塊來增強桌遊體驗，並採用模組化設計，適配各種桌遊需求。</p>
+      <p><a href="https://github.com/Andy5533/Open-Modular-Boardgame-Companion" target="_blank"><i class="fab fa-github"></i> GitHub</a></p>
+      <h2>聯繫我們</h2>
+      <p>Email: andy55335533gmail.com</p>
+      <h2>體驗網站</h2>
+      <p><a href="https://andy5533.github.io/A-web-companion-tools-page-for-board-game-/beta1.html" target="_blank"><i class="fab fa-github"></i>演示網站</a></p>
+    </div>
+  </div>
+  
+  <!-- 頁面切換按鈕與懸浮標籤 -->
+  <div class="page-switch">
+    <div class="page-switch-item">
+      <span class="page-label">首頁</span>
+      <button id="page1Btn" title="首頁介紹">
+        <i class="fas fa-home"></i>
+      </button>
+    </div>
+    <div class="page-switch-item">
+      <span class="page-label">自由模組</span>
+      <button id="page2Btn" title="模組展示">
+        <i class="fas fa-th"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- 箭頭提示 (僅在第二頁顯示) -->
+  <div id="arrowLeft" class="arrow" style="display: none;"><i class="fas fa-chevron-left"></i></div>
+  <div id="arrowRight" class="arrow" style="display: none;"><i class="fas fa-chevron-right"></i></div>
+  
+  <!-- 操作提示 -->
+  <div id="tooltip" class="tooltip">自由模組頁拖動場景　滾輪　點擊箭頭切換模組</div>
+  
+  <!-- 第一頁介紹 -->
+  <div id="page1Intro">
+    <h1>開源桌遊配套平台</h1>
+    <p>模組化適配 · 虛擬骰子 · 分數記錄卡．自定義模組</p>
+    <p>跨平台極致體驗，讓桌遊更有趣！</p>
+  </div>
+  
+  <!-- 第二頁模組信息展示 -->
+  <div id="page2Info"></div>
+  <!-- 模組截圖 -->
+  <div id="moduleScreenshot"></div>
+  
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  
+  <script>
+    // 手機端側邊欄點擊展開/收合
+    const sidebar = document.getElementById('sidebar');
+    sidebar.addEventListener('click', function(e) {
+      if (!e.target.closest('a')) {
+        sidebar.classList.toggle('open');
+      }
+    });
+  
+    /* 自定義骰子：傳入6個圖片 URL 陣列 */
+    function createDiceModelCustom(texturesArray) {
+      const group = new THREE.Group();
+      const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+      const materials = texturesArray.map(url => {
+        const tex = new THREE.TextureLoader().load(url);
+        return new THREE.MeshStandardMaterial({ map: tex });
+      });
+      const cube = new THREE.Mesh(geometry, materials);
+      group.add(cube);
+      return group;
+    }
+    
+    // 建立手機模型（鏡面材質示例）
+    function createPhoneModelSimple(textureUrl) {
+      const geometry = new THREE.BoxGeometry(1, 2, 0.1);
+      const texture = new THREE.TextureLoader().load(textureUrl);
+      const material = new THREE.MeshStandardMaterial({ map: texture });
+      return new THREE.Mesh(geometry, material);
+    }
+    
+    // 建立筆記本（電腦）模型（鏡面材質示例）
+    function createSimpleNotebookModel(textureUrl) {
+      const geometry = new THREE.BoxGeometry(2.5, 2, 0.15);
+      const texture = new THREE.TextureLoader().load(textureUrl);
+      const material = new THREE.MeshStandardMaterial({ map: texture });
+      return new THREE.Mesh(geometry, material);
+    }
+    
+    // 建立計算器模型
+    function createSimpleCalculatorModel(textureUrl) {
+      const geometry = new THREE.BoxGeometry(2, 2.5, 0.15);
+      const texture = new THREE.TextureLoader().load(textureUrl);
+      const material = new THREE.MeshStandardMaterial({ map: texture });
+      return new THREE.Mesh(geometry, material);
+    }
+    
+    // 建立棋盤模型（前後貼圖不同）
+    function createFlatChessboardModel(frontUrl, backUrl) {
+      const geometry = new THREE.BoxGeometry(4.5, 4.5, 0.1);
+      const frontTex = new THREE.TextureLoader().load(frontUrl);
+      const backTex = new THREE.TextureLoader().load(backUrl);
+      const materials = [
+        new THREE.MeshStandardMaterial({ color: 0x888888 }),
+        new THREE.MeshStandardMaterial({ color: 0x888888 }),
+        new THREE.MeshStandardMaterial({ color: 0x888888 }),
+        new THREE.MeshStandardMaterial({ color: 0x888888 }),
+        new THREE.MeshStandardMaterial({ map: frontTex }),
+        new THREE.MeshStandardMaterial({ map: backTex })
+      ];
+      return new THREE.Mesh(geometry, materials);
+    }
+    
+    // 全域變數設定
+    let scene, camera, renderer, currentPage = 1;
+    let page1Group, page2Group, carousel;
+    let selectedIndex = 0; // 第二頁當前選中的模組
+    const page2Items = [];
+    const spacing = 12; // 模組間距
+    
+    // 模組截圖資料
+    const moduleScreenshots = {
+      "虛擬骰子": "your-dice-screenshot.jpg",
+      "筆記本": "your-notebook-screenshot.jpg",
+      "計算器": "your-calculator-screenshot.jpg",
+      "棋盤": "your-boardgame-screenshot.jpg"
+    };
+    
+    // 自定義骰子圖片陣列（6個面）
+    const diceTextures = [
+      "3d骰1.png",
+      "3d骰2.png",
+      "3d骰3.png",
+      "3d骰4.png",
+      "3d骰5.png",
+      "3d骰6.png"
+    ];
+    
+    // 觸控拖曳變數
+    let touchStartX = 0;
+    const swipeThreshold = 50; // 拖動門檻
+    
+    init();
+    animate();
+    
+    function init() {
+      // 建立場景與霧效
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x000000, 0.06);
+      
+      // 相機設定
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 6, 14);
+      
+      // 渲染器設定
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.getElementById('container').appendChild(renderer.domElement);
+      
+      // 調整打光參數（更亮）
+      const ambientLight = new THREE.AmbientLight(0xffffff, 3);
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(8, 12, 6);
+      scene.add(directionalLight);
+      
+      const textureLoader = new THREE.TextureLoader();
+      
+      /* ---------------- 第一頁：介紹與展示設備 ---------------- */
+      page1Group = new THREE.Group();
+      page1Group.scale.set(0.65, 0.65, 1);
+      
+      // 棋盤（地上）
+      const floorTexture = textureLoader.load('大富翁.png');
+      const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture });
+      const floorGeometry = new THREE.PlaneGeometry(10, 5);
+      const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.rotation.x = -Math.PI/2 + 0.15;
+      floor.position.set(3, 4, -1);
+      floor.scale.set(0.8, 0.8, 0.8);
+      page1Group.add(floor);
+      
+      // 手機模型：使用自己的手機材質圖片（鏡面效果）
+      const phone = createPhoneModelSimple('手機.png'); // 請替換成你的手機材質 URL
+      phone.position.set(-3, 7, -3);
+      phone.rotation.x = -0.1;
+      phone.rotation.y = 0.3;
+      phone.scale.set(2, 2, 2);
+      page1Group.add(phone);
+      
+      // 筆記本（電腦）模型：使用自己的電腦材質圖片（鏡面效果）
+      const notebook = createSimpleNotebookModel('筆電.png'); // 請替換成你的電腦材質 URL
+      notebook.position.set(8.5, 7.2, -3);
+      notebook.rotation.x = -0.1;
+      notebook.rotation.y = Math.PI - 0.3;
+      notebook.scale.set(2, 2, 0);
+      page1Group.add(notebook);
+      
+      // 整個第一頁模型往右移
+      page1Group.position.x = -2;
+      gsap.to(page1Group.position, { y: "+=0.5", repeat: -1, yoyo: true, ease: "sine.inOut", duration: 3 });
+      
+      scene.add(page1Group);
+      
+      /* ---------------- 第二頁：模組輪播 ---------------- */
+      page2Group = new THREE.Group();
+      carousel = new THREE.Group();
+      carousel.position.y = 2;
+      page2Group.add(carousel);
+      
+      const modulesData = [
+        { title: "虛擬骰子", desc: "預設模塊，視覺化模擬骰子投擲。", create: () => createDiceModelCustom(diceTextures) },
+        { title: "快記", desc: "預設模塊，搭配優雅動效的數據暫存點。", create: () => createSimpleNotebookModel('筆記本.png') },
+        { title: "計算機", desc: "預設模塊，桌遊計算必不可少的好幫手。。", create: () => createSimpleCalculatorModel('計算機.png') },
+        { title: "自定義模組", desc: "在本網站精美主題建立你的桌遊需要的模組", create: () => createFlatChessboardModel('棋盤2.png', '棋盤2.png') }
+      ];
+      const numItems = modulesData.length;
+      modulesData.forEach((data, i) => {
+        const model = data.create();
+        let scaleFactor = (data.title === "棋盤")
+                          ? (i === selectedIndex ? 1.5 : 0.6)
+                          : (i === selectedIndex ? 2.5 : 0.8);
+        model.position.set((i - (numItems - 1) / 2) * spacing, 5, 0);
+        model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        carousel.add(model);
+        page2Items.push({ object: model, title: data.title, desc: data.desc });
+      });
+      page2Group.visible = false;
+      scene.add(page2Group);
+      
+      // 綁定頁面切換按鈕
+      document.getElementById('page1Btn').addEventListener('click', () => { switchPage(1); });
+      document.getElementById('page2Btn').addEventListener('click', () => { switchPage(2); });
+      
+      // 綁定左右箭頭點擊事件
+      document.getElementById('arrowLeft').addEventListener('click', () => {
+        selectedIndex = (selectedIndex - 1 + page2Items.length) % page2Items.length;
+        updatePage2Selection();
+      });
+      document.getElementById('arrowRight').addEventListener('click', () => {
+        selectedIndex = (selectedIndex + 1) % page2Items.length;
+        updatePage2Selection();
+      });
+      
+      // 監聽滾輪事件
+      window.addEventListener('wheel', onMouseWheel, false);
+      // 監聽視窗調整
+      window.addEventListener('resize', onWindowResize, false);
+      
+      // 監聽觸控事件，實現左右拖動切換
+      const container = document.getElementById('container');
+      container.addEventListener('touchstart', onTouchStart, false);
+      container.addEventListener('touchend', onTouchEnd, false);
+      
+      gsap.to('#tooltip', { duration: 2.5, opacity: 0, delay: 3, ease: "power3.out" });
+    }
+    
+    function onTouchStart(event) {
+      touchStartX = event.touches[0].clientX;
+    }
+    
+    function onTouchEnd(event) {
+      const touchEndX = event.changedTouches[0].clientX;
+      const deltaX = touchEndX - touchStartX;
+      if (Math.abs(deltaX) > swipeThreshold) {
+        // 向左拖動（deltaX < 0）切換到下一個
+        if (deltaX < 0) {
+          selectedIndex = (selectedIndex + 1) % page2Items.length;
+        } else { // 向右拖動切換到上一個
+          selectedIndex = (selectedIndex - 1 + page2Items.length) % page2Items.length;
+        }
+        updatePage2Selection();
+      }
+    }
+    
+    function switchPage(page) {
+      currentPage = page;
+      if (page === 1) {
+        page1Group.visible = true;
+        page2Group.visible = false;
+        document.getElementById('page1Intro').style.display = 'block';
+        document.getElementById('page2Info').style.display = 'none';
+        document.getElementById('moduleScreenshot').style.display = 'none';
+        // 隱藏左右箭頭
+        document.getElementById('arrowLeft').style.display = 'none';
+        document.getElementById('arrowRight').style.display = 'none';
+      } else {
+        page1Group.visible = false;
+        page2Group.visible = true;
+        document.getElementById('page1Intro').style.display = 'none';
+        document.getElementById('page2Info').style.display = 'block';
+        document.getElementById('moduleScreenshot').style.display = 'block';
+        // 顯示左右箭頭
+        document.getElementById('arrowLeft').style.display = 'block';
+        document.getElementById('arrowRight').style.display = 'block';
+        updatePage2Selection();
+      }
+    }
+    
+    function onMouseWheel(event) {
+      if (currentPage !== 2) return;
+      if (event.deltaY > 0) {
+        selectedIndex = (selectedIndex + 1) % page2Items.length;
+      } else {
+        selectedIndex = (selectedIndex - 1 + page2Items.length) % page2Items.length;
+      }
+      updatePage2Selection();
+    }
+    
+    function updatePage2Selection() {
+      gsap.to(carousel.position, {
+        x: -carousel.children[selectedIndex].position.x,
+        duration: 0.8,
+        ease: "power3.out"
+      });
+      page2Items.forEach((item, i) => {
+        let targetScale = (item.title === "棋盤")
+                          ? ((i === selectedIndex) ? 1.5 : 0.6)
+                          : ((i === selectedIndex) ? 2.5 : 0.8);
+        gsap.to(item.object.scale, {
+          x: targetScale, y: targetScale, z: targetScale,
+          duration: 0.8, ease: "power3.out"
+        });
+      });
+      const infoDiv = document.getElementById('page2Info');
+      const selectedItem = page2Items[selectedIndex];
+      infoDiv.innerHTML = `<h2 class="text-2xl font-bold">${selectedItem.title}</h2>
+                           <p>${selectedItem.desc}</p>`;
+      const screenshotDiv = document.getElementById('moduleScreenshot');
+      const screenshotUrl = moduleScreenshots[selectedItem.title] || "";
+      screenshotDiv.innerHTML = screenshotUrl ? `<img src="${screenshotUrl}" alt="${selectedItem.title} 截圖" />` : "";
+    }
+    
+    function onWindowResize() {
+      // 更新相機和渲染器
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      // 計算縮放比例
+      const baseWidth = 1920; // 基準寬度
+      let scale = window.innerWidth / baseWidth; // 根據當前寬度計算比例
+      scale = Math.max(0.5, Math.min(scale, 1.5)); // 限制縮放範圍在 0.5 到 1.5
+
+      // 使用 GSAP 實現平滑縮放
+      gsap.to(page1Group.scale, {
+        x: scale,
+        y: scale,
+        z: scale,
+        duration: 0.5, // 動畫持續時間
+        ease: "power2.out" // 平滑過渡效果
+      });
+    }
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      if (currentPage === 2) {
+        const currentObj = page2Items[selectedIndex].object;
+        currentObj.rotation.x += 0.005;
+        currentObj.rotation.y += 0.005;
+      }
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>

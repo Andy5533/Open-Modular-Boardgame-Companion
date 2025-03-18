@@ -1,6 +1,6 @@
 # 自由模組桌遊配套平臺
 ---
-
+現在體驗: https://andy5533.github.io/A-web-companion-tools-page-for-board-game-/beta1.html
 ## 目錄
 
 - [簡介](#簡介)

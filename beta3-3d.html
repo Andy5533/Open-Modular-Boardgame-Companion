@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>開源桌遊配套平台</title>
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <!-- Noto Serif SC & Noto Sans SC -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* --- Theme Variables --- */
+    :root {
+      --bg-color: #000; /* Base background color (Dark) */
+      --text-color: #fff;
+      --text-color-alpha-9: rgba(255,255,255,0.9);
+      --sidebar-bg: rgba(0, 0, 0, 0.5);
+      --tooltip-bg: rgba(0,0,0,0.8);
+      --intro-bg: rgba(0,0,0,0.6);
+      --link-color: #60a5fa;
+      --button-bg: #3b82f6;
+      --button-hover-bg: #2563eb;
+      --arrow-color: #3b82f6;
+      --border-color: #3b82f6;
+      /* Background gradient colors (Dark Theme) */
+      --grad-1: rgba(255,0,150,0.3);
+      --grad-2: rgba(0,255,150,0.3);
+      --grad-3: rgba(150,0,255,0.3);
+    }
+
+    body.light-theme {
+      --bg-color: #f0f0f0; /* Base background color (Light) */
+      --text-color: #333;
+      --text-color-alpha-9: rgba(51,51,51,0.9);
+      --sidebar-bg: rgba(255, 255, 255, 0.6);
+      --tooltip-bg: rgba(255,255,255,0.85);
+      --intro-bg: rgba(255,255,255,0.7);
+      --link-color: #0b69d3;
+      --button-bg: #2563eb;
+      --button-hover-bg: #1d4ed8;
+      --arrow-color: #2563eb;
+      --border-color: #2563eb;
+      /* Background gradient colors (Light Theme) */
+      --grad-1: rgba(255,100,180,0.2);
+      --grad-2: rgba(100,255,180,0.2);
+      --grad-3: rgba(180,100,255,0.2);
+    }
+
+    /* Base body - Transparent to let #background show */
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      font-family: 'Noto Sans SC', 'Noto Serif SC', sans-serif;
+      background: transparent; /* Let #background handle the visual background */
+      color: var(--text-color);
+      transition: color 0.3s ease;
+    }
+    /* --- Loading Overlay --- */
+    #loading-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: var(--bg-color); /* Use theme base color */
+        display: flex; justify-content: center;
+        align-items: center; z-index: 10000; opacity: 1;
+        transition: opacity 0.5s ease-out, background-color 0.3s ease;
+    }
+    .spinner {
+        border: 5px solid rgba(255, 255, 255, 0.3); border-top: 5px solid var(--text-color);
+        border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
+        transition: border-top-color 0.3s ease;
+    }
+    body.light-theme .spinner { border: 5px solid rgba(0, 0, 0, 0.1); border-top-color: var(--text-color); }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Background container - Solid base color */
+    #background {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-color); /* Use theme base color */
+      z-index: -3; /* Deepest layer */
+      overflow: hidden;
+      transition: background-color 0.3s ease; /* Transition base color */
+    }
+    /* Animated blurred gradient - On top of solid base */
+    #background::after {
+      content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, var(--grad-1), var(--grad-2), var(--grad-3)); /* Use Gradient Variables */
+      filter: blur(120px); animation: pulse 8s infinite alternate;
+      z-index: -2; /* Above #background, below #container */
+      transition: background 0.5s ease; /* Smooth gradient color change */
+    }
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.2); } }
+
+    /* Three.js container */
+    #container { width: 100%; height: 100vh; position: relative; z-index: 0; } /* Above background layers */
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: 0; height: 100%; width: 60px;
+      background: var(--sidebar-bg); color: var(--text-color); overflow: hidden;
+      transition: width 0.4s ease-in-out, background-color 0.3s ease, color 0.3s ease;
+      z-index: 9999; text-align: center; cursor: pointer;
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    }
+    .sidebar h2 { margin: 20px 0; font-size: 1.2rem; line-height: 1.2; }
+    .sidebar h2 span { display: block; }
+    @media (hover: hover) and (pointer: fine) {
+      .sidebar:hover { width: 220px; }
+      .sidebar:hover .extra { opacity: 1; transition: opacity 0.3s 0.2s ease; pointer-events: auto; }
+    }
+    .sidebar.open { width: 220px; }
+    .sidebar.open .extra { opacity: 1; transition: opacity 0.3s 0.2s ease; pointer-events: auto; }
+    .sidebar .extra {
+      display: block; opacity: 0; padding: 0 10px 20px; font-size: 0.9rem; line-height: 1.4;
+      transition: opacity 0.2s ease; pointer-events: none; text-align: left;
+    }
+    .sidebar a { color: var(--link-color); text-decoration: none; }
+    .sidebar a:hover { text-decoration: underline; }
+
+    /* Controls Container */
+    .controls-container {
+      position: fixed; bottom: 20px; right: 20px; z-index: 20;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .control-item { display: flex; align-items: center; justify-content: flex-end; }
+    .page-label {
+      min-width: 120px; text-align: right; margin-right: 16px;
+      color: var(--text-color-alpha-9); font-size: 1.2rem; animation: float 2s infinite;
+      transition: color 0.3s ease;
+    }
+    @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
+    .control-button {
+      width: 55px; height: 55px; border-radius: 50%; background: var(--button-bg); color: #fff;
+      border: none; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      transition: background 0.3s ease, transform 0.3s ease; display: flex; justify-content: center;
+      align-items: center; font-size: 1.2rem;
+    }
+    .control-button:hover { background: var(--button-hover-bg); transform: scale(1.1); }
+
+    /* Tooltip */
+    .tooltip {
+      position: fixed; max-width: 200px; top: 20px; right: 20px;
+      background: var(--tooltip-bg); color: var(--text-color); padding: 12px 12px;
+      border-radius: 8px; font-size: 0.9rem; z-index: 20; opacity: 1; /* Faded by GSAP */
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Page 1 Intro */
+    #page1Intro {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--intro-bg); color: var(--text-color); padding: 20px 30px;
+      border-radius: 12px; text-align: center; z-index: 10; max-width: 90%;
+      opacity: 1; pointer-events: auto;
+      transition: opacity 0.5s ease, background-color 0.3s ease, color 0.3s ease;
+    }
+    #page1Intro h1 { font-size: 2.25rem; margin-bottom: 0.5rem; }
+    #page1Intro p { font-size: 1rem; line-height: 1.4; }
+
+    /* Page 2 Info */
+    #page2Info {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      color: var(--text-color); text-align: center; padding: 20px; z-index: 20;
+      background: var(--intro-bg); border-radius: 10px; font-size: 1.1rem;
+      display: block; opacity: 0; pointer-events: none;
+      max-width: 90%;
+      transition: opacity 0.5s ease, background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Module Screenshot */
+    #moduleScreenshot {
+      position: fixed; bottom: 20px; left: 80px; /* Default left offset */
+      max-width: 30%; /* Default max width */
+      z-index: 20;
+      border: 3px solid var(--border-color); border-radius: 10px; overflow: hidden;
+      background: #000; display: block; opacity: 0; pointer-events: none;
+      /* UPDATED: Added max-width to transition */
+      transition: opacity 0.3s ease, border-color 0.3s ease, left 0.3s ease, max-width 0.3s ease;
+    }
+    #moduleScreenshot img { display: block; width: 100%; }
+
+    /* Arrows */
+    .arrow {
+      position: fixed; top: 50%; transform: translateY(-50%); color: var(--arrow-color);
+      font-size: 2rem; z-index: 100; cursor: pointer; opacity: 0; pointer-events: none;
+      /* Ensure left/right are in transition */
+      transition: opacity 0.5s ease, color 0.3s ease, left 0.3s ease, right 0.3s ease;
+    }
+    #arrowLeft { left: 20%; } /* Default left */
+    #arrowRight { right: 20%; } /* Default right */
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      #page1Intro h1 { font-size: 1.75rem; } #page1Intro p { font-size: 0.9rem; }
+      #page2Info { font-size: 0.9rem; }
+
+      /* Mobile position for screenshot */
+      #moduleScreenshot { max-width: 35%; left: 75px; bottom: 15px; }
+
+      .sidebar:hover, .sidebar.open { width: 180px; }
+      .page-label { display: none; } .control-item { justify-content: center; }
+      .controls-container { right: 10px; bottom: 10px; gap: 8px; }
+      .control-button { width: 50px; height: 50px; font-size: 1rem;}
+
+      /* Mobile position for arrows */
+      #arrowLeft { left: 75px; font-size: 1.8rem; }
+      #arrowRight { right: 5%; font-size: 1.8rem; }
+
+      .tooltip { max-width: 40%; font-size: 0.8rem; top: 10px; right: 10px; padding: 8px;}
+    }
+
+    /* Large Screen Adjustments */
+    @media (min-width: 1024px) {
+       /* UPDATED: Make screenshot smaller on large screens */
+       #moduleScreenshot {
+           max-width: 15%;
+       }
+       /* Optionally adjust arrows further out */
+       #arrowLeft { left: 15%; }
+       #arrowRight { right: 15%; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay"><div class="spinner"></div></div>
+
+  <!-- Background Animation Container (Solid base + Gradient) -->
+  <div id="background"></div>
+  <!-- Three.js Render Container -->
+  <div id="container"></div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <h2><span>關</span><span>於</span><span>本</span><span>項</span><span>目</span></h2>
+    <div class="extra">
+      <p>這是一個開源自定義桌遊配套平台，旨在通過虛擬骰子與分數記錄格等遊戲模塊來增強桌遊體驗，並採用模組化設計，適配各種桌遊需求。</p>
+      <p><a href="https://github.com/Andy5533/Open-Modular-Boardgame-Companion" target="_blank"><i class="fab fa-github"></i> GitHub頁面</a></p>
+      <p><a href="https://andy5533.github.io/A-web-companion-tools-page-for-board-game-/beta1.html" target="_blank"><i class="fab fa-github"></i>演示網站</a></p>
+      <p>Email: andy55335533@gmail.com</p> <!-- Corrected email -->
+    </div>
+  </div>
+
+  <!-- Controls Container -->
+  <div class="controls-container">
+    <div class="control-item"><span class="page-label">首頁</span><button id="page1Btn" class="control-button" title="首頁介紹"><i class="fas fa-home"></i></button></div>
+    <div class="control-item"><span class="page-label">自由模組</span><button id="page2Btn" class="control-button" title="模組展示"><i class="fas fa-th"></i></button></div>
+    <div class="control-item"><span class="page-label" id="theme-label">切換主題</span><button id="themeToggleBtn" class="control-button" title="切換主題"><i class="fas fa-sun"></i></button></div>
+  </div>
+
+  <!-- Arrows -->
+  <div id="arrowLeft" class="arrow"><i class="fas fa-chevron-left"></i></div>
+  <div id="arrowRight" class="arrow"><i class="fas fa-chevron-right"></i></div>
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip">自由模組頁：<br>拖動場景<br>滾輪/箭頭切換模組</div>
+  <!-- Page 1 Intro -->
+  <div id="page1Intro">
+    <h1>開源桌遊配套平台</h1>
+    <p>模組化適配 · 虛擬骰子 · 分數記錄卡．自定義模組</p>
+    <p>跨平台極致體驗，讓桌遊更有趣！</p>
+  </div>
+  <!-- Page 2 Module Info -->
+  <div id="page2Info"></div>
+  <!-- Module Screenshot -->
+  <div id="moduleScreenshot">
+    <!-- Image will be inserted here by JS -->
+  </div>
+
+  <!-- Three.js & GSAP -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <script>
+    // --- Global Variables ---
+    let scene, camera, renderer, currentPage = 1, ambientLight;
+    let page1Group, page2Group, carousel;
+    let selectedIndex = 0;
+    const page2Items = [];
+    const spacing = 12;
+    let isTransitioning = false;
+
+    // --- DOM Elements ---
+    const sidebar = document.getElementById('sidebar');
+    const page1Intro = document.getElementById('page1Intro');
+    const page2Info = document.getElementById('page2Info');
+    const moduleScreenshot = document.getElementById('moduleScreenshot');
+    const arrowLeft = document.getElementById('arrowLeft');
+    const arrowRight = document.getElementById('arrowRight');
+    const tooltip = document.getElementById('tooltip');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = themeToggleBtn.querySelector('i');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const container = document.getElementById('container');
+
+    // --- Configuration ---
+    // NOTE: Replace with your actual screenshot filenames
+    const moduleScreenshots = {
+      "虛擬骰子": "your-dice-screenshot.jpg",
+      "快記": "your-notebook-screenshot.jpg",
+      "計算機": "your-calculator-screenshot.jpg",
+      "自定義模組": "your-boardgame-screenshot.jpg"
+    };
+    // NOTE: Ensure these image paths are correct relative to your HTML file
+    const diceTextures = [
+      "3d骰1.png", "3d骰2.png", "3d骰3.png",
+      "3d骰4.png", "3d骰5.png", "3d骰6.png"
+    ];
+    const page1Textures = {
+        floor: '大富翁.png',
+        phone: '手機.png',
+        notebook: '筆電.png'
+    };
+    const page2ModelTextures = {
+        notebook: '筆記本.png',
+        calculator: '計算機.png',
+        chessboardFront: '棋盤2.png',
+        chessboardBack: '棋盤2.png' // Assuming same texture for back
+    };
+
+    // --- Touch Variables ---
+    let touchStartX = 0;
+    const swipeThreshold = 50;
+
+    // --- Initialization ---
+    loadTheme();
+    init();
+    animate();
+
+    // --- Helper Functions ---
+    function calculateP1Scale() {
+        const baseWidth = 1920; // Reference width for scaling
+        let scale = Math.min(1.2, Math.max(0.6, window.innerWidth / baseWidth * 0.8));
+        return { x: scale, y: scale, z: scale };
+    }
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x000000, 0.05);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 6, 14);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      container.appendChild(renderer.domElement);
+
+      ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+      updateLightingForTheme();
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(8, 12, 6);
+      scene.add(directionalLight);
+
+      const textureLoader = new THREE.TextureLoader();
+
+      /* --- Page 1 --- */
+      page1Group = new THREE.Group();
+      const initialP1Scale = calculateP1Scale();
+      page1Group.scale.set(initialP1Scale.x*0.7, initialP1Scale.y*0.7, initialP1Scale.z*0.7); // Apply calculated initial scale
+      page1Group.position.x = window.innerWidth <= 768 ? -1 : -2;
+
+       const floorTexture = textureLoader.load(page1Textures.floor);
+      floorTexture.colorSpace = THREE.SRGBColorSpace;
+      const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture });
+      const floorGeometry = new THREE.PlaneGeometry(10, 5);
+      const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.rotation.x = -Math.PI/2 + 0.15; floor.position.set(3, 4, -1); floor.scale.set(0.8, 0.8, 0.8);
+      page1Group.add(floor);
+
+      const phone = createPhoneModelSimple(page1Textures.phone);
+      if(phone) {
+        phone.position.set(-3, 7, -3); phone.rotation.set(-0.1, 0.3, 0); phone.scale.set(2, 2, 2);
+        page1Group.add(phone);
+      }
+
+      const notebook = createSimpleNotebookModel(page1Textures.notebook, 2.5, 2, 0.1);
+      if(notebook) {
+        notebook.position.set(8.5, 7.2, -3); notebook.rotation.set(-0.1, Math.PI - 0.3, 0); notebook.scale.set(2, 2, 2);
+        page1Group.add(notebook);
+      }
+
+      gsap.to(page1Group.position, { y: "+=0.5", repeat: -1, yoyo: true, ease: "sine.inOut", duration: 3 });
+      scene.add(page1Group);
+      page1Group.visible = (currentPage === 1);
+      if (currentPage !== 1) page1Group.scale.set(0.01, 0.01, 0.01);
+
+
+      /* --- Page 2 --- */
+      page2Group = new THREE.Group();
+      carousel = new THREE.Group(); carousel.position.y = 2; page2Group.add(carousel);
+
+      const modulesData = [
+        { title: "虛擬骰子", desc: "預設模塊，視覺化模擬骰子投擲。", create: () => createDiceModelCustom(diceTextures) },
+        { title: "快記", desc: "預設模塊，搭配優雅動效的數據暫存點。", create: () => createSimpleNotebookModel(page2ModelTextures.notebook, 2.5, 2, 0.15) },
+        { title: "計算機", desc: "預設模塊，桌遊計算必不可少的好幫手。", create: () => createSimpleCalculatorModel(page2ModelTextures.calculator) },
+        { title: "自定義模組", desc: "在本網站精美主題建立你的桌遊需要的模組", create: () => createFlatChessboardModel(page2ModelTextures.chessboardFront, page2ModelTextures.chessboardBack) }
+      ];
+      const numItems = modulesData.length;
+      modulesData.forEach((data, i) => {
+        const model = data.create();
+        if (model) {
+            const isChessboard = data.title === "自定義模組";
+            let scaleFactor = (i === selectedIndex) ? (isChessboard ? 1.5 : 2.5) : (isChessboard ? 0.6 : 0.8);
+            model.position.set((i - (numItems - 1) / 2) * spacing, 5, 0);
+            model.scale.set(scaleFactor, scaleFactor, scaleFactor); carousel.add(model);
+            page2Items.push({ object: model, title: data.title, desc: data.desc, isChessboard: isChessboard });
+        } else { console.error(`Failed to create 3D model for: ${data.title}`); }
+      });
+      scene.add(page2Group);
+      page2Group.visible = (currentPage === 2);
+      if (currentPage !== 2) page2Group.scale.set(0.01, 0.01, 0.01);
+
+      // --- Initial UI State ---
+      gsap.set(page1Intro, { opacity: currentPage === 1 ? 1 : 0, pointerEvents: currentPage === 1 ? 'auto' : 'none' });
+      gsap.set([page2Info, moduleScreenshot, arrowLeft, arrowRight], { opacity: currentPage === 2 ? 1 : 0, pointerEvents: currentPage === 2 ? 'auto' : 'none' });
+      gsap.set(tooltip, { opacity: currentPage === 2 ? 1 : 0, pointerEvents: currentPage === 2 ? 'auto' : 'none' });
+      if (currentPage === 2) {
+        updatePage2Selection(true);
+        gsap.to(tooltip, { duration: 2.5, opacity: 0, delay: 4, ease: "power3.out", onComplete: () => gsap.set(tooltip, {pointerEvents: 'none'}) });
+      } else {
+        // Ensure screenshot is hidden if starting on page 1
+        gsap.set(moduleScreenshot, {opacity: 0});
+      }
+
+
+      // --- Event Listeners ---
+      sidebar.addEventListener('click', (e) => { if (!e.target.closest('a')) sidebar.classList.toggle('open'); });
+      document.getElementById('page1Btn').addEventListener('click', () => switchPage(1));
+      document.getElementById('page2Btn').addEventListener('click', () => switchPage(2));
+      arrowLeft.addEventListener('click', () => navigateCarousel(-1));
+      arrowRight.addEventListener('click', () => navigateCarousel(1));
+      themeToggleBtn.addEventListener('click', toggleTheme);
+      window.addEventListener('wheel', onMouseWheel, { passive: false });
+      window.addEventListener('resize', onWindowResize, false);
+      container.addEventListener('touchstart', onTouchStart, { passive: true });
+      container.addEventListener('touchend', onTouchEnd, false);
+
+      hideLoadingScreen();
+    }
+
+    // --- Loading Screen ---
+    function hideLoadingScreen() { gsap.to(loadingOverlay, { opacity: 0, duration: 0.8, ease: "power2.inOut", onComplete: () => { loadingOverlay.style.display = 'none'; } }); }
+
+    // --- Theme Functions ---
+    function toggleTheme() { document.body.classList.toggle('light-theme'); updateThemeIcon(); updateLightingForTheme(); saveTheme(); }
+    function updateThemeIcon() { themeIcon.className = document.body.classList.contains('light-theme') ? 'fas fa-moon' : 'fas fa-sun'; }
+    function updateLightingForTheme() {
+        if (ambientLight) {
+            const intensity = document.body.classList.contains('light-theme') ? 4.0 : 1.8;
+            gsap.to(ambientLight, { intensity: intensity, duration: 0.5 });
+        }
+     }
+    function saveTheme() { localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark'); }
+    function loadTheme() { if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme'); updateThemeIcon(); }
+
+
+    // --- 3D Model Creators (Unchanged) ---
+    function createDiceModelCustom(texturesArray) {
+      try {
+        const group = new THREE.Group(); const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+        const materials = texturesArray.map(url => {
+          const tex = new THREE.TextureLoader().load(url); tex.colorSpace = THREE.SRGBColorSpace;
+          return new THREE.MeshStandardMaterial({ map: tex });
+        });
+        const cube = new THREE.Mesh(geometry, materials); group.add(cube); return group;
+      } catch (e) { console.error("Dice creation failed:", e); return null; }
+     }
+    function createPhoneModelSimple(textureUrl) {
+       try {
+        const geometry = new THREE.BoxGeometry(1, 2, 0.1); const texture = new THREE.TextureLoader().load(textureUrl);
+        texture.colorSpace = THREE.SRGBColorSpace; const material = new THREE.MeshStandardMaterial({ map: texture });
+        return new THREE.Mesh(geometry, material);
+      } catch (e) { console.error("Phone creation failed:", e); return null; }
+     }
+    function createSimpleNotebookModel(textureUrl, width = 2.5, height = 2, depth = 0.15) {
+       try {
+        const geometry = new THREE.BoxGeometry(width, height, depth); const texture = new THREE.TextureLoader().load(textureUrl);
+        texture.colorSpace = THREE.SRGBColorSpace; const material = new THREE.MeshStandardMaterial({ map: texture });
+        return new THREE.Mesh(geometry, material);
+      } catch (e) { console.error("Notebook creation failed:", e); return null; }
+     }
+    function createSimpleCalculatorModel(textureUrl) {
+       try {
+        const geometry = new THREE.BoxGeometry(2, 2.5, 0.15); const texture = new THREE.TextureLoader().load(textureUrl);
+        texture.colorSpace = THREE.SRGBColorSpace; const material = new THREE.MeshStandardMaterial({ map: texture });
+        return new THREE.Mesh(geometry, material);
+       } catch (e) { console.error("Calculator creation failed:", e); return null; }
+     }
+    function createFlatChessboardModel(frontUrl, backUrl) {
+      try {
+        const geometry = new THREE.BoxGeometry(4.5, 4.5, 0.1); const frontTex = new THREE.TextureLoader().load(frontUrl);
+        frontTex.colorSpace = THREE.SRGBColorSpace; const backTex = new THREE.TextureLoader().load(backUrl);
+        backTex.colorSpace = THREE.SRGBColorSpace; const sideMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        const materials = [ sideMat, sideMat, sideMat, sideMat, new THREE.MeshStandardMaterial({ map: frontTex }), new THREE.MeshStandardMaterial({ map: backTex }) ];
+        return new THREE.Mesh(geometry, materials);
+      } catch (e) { console.error("Chessboard creation failed:", e); return null; }
+     }
+
+    // --- Event Handlers ---
+    function onTouchStart(event) { touchStartX = event.touches[0].clientX; }
+    function onTouchEnd(event) {
+      if (currentPage !== 2 || isTransitioning) return;
+      const touchEndX = event.changedTouches[0].clientX; const deltaX = touchEndX - touchStartX;
+      if (Math.abs(deltaX) > swipeThreshold) { navigateCarousel(deltaX > 0 ? -1 : 1); }
+    }
+    function onMouseWheel(event) {
+        if (currentPage === 2) event.preventDefault();
+        if (currentPage === 2 && !isTransitioning) navigateCarousel(event.deltaY > 0 ? 1 : -1);
+    }
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      if(page1Group) {
+          const targetP1Scale = calculateP1Scale();
+          gsap.to(page1Group.scale, { ...targetP1Scale, duration: 0.5, ease: "power2.out" });
+          const targetX = window.innerWidth <= 768 ? -1 : -2;
+          gsap.to(page1Group.position, { x: targetX, duration: 0.5, ease: "power2.out" });
+      }
+    }
+
+    // --- Page Switching Logic ---
+    function switchPage(page) {
+        if (page === currentPage || isTransitioning) return;
+        isTransitioning = true;
+        const oldPage = currentPage; currentPage = page;
+        const fadeDuration = 0.6;
+
+        const fadeOutElements = oldPage === 1 ? [page1Intro] : [page2Info, moduleScreenshot, arrowLeft, arrowRight, tooltip];
+        const fadeInElements = page === 1 ? [page1Intro] : [page2Info, moduleScreenshot, arrowLeft, arrowRight];
+
+        const fadeOutGroup = oldPage === 1 ? page1Group : page2Group;
+        const fadeInGroup = page === 1 ? page1Group : page2Group;
+        const fadeScale = { x: 0.01, y: 0.01, z: 0.01 };
+
+        // --- Start Fade Out ---
+        gsap.to(fadeOutElements, {
+            opacity: 0, duration: fadeDuration * 0.8, ease: "power2.in",
+            onStart: () => gsap.set(fadeOutElements, { pointerEvents: 'none' })
+        });
+        if (fadeOutGroup) {
+            gsap.to(fadeOutGroup.scale, {
+                ...fadeScale, duration: fadeDuration * 0.8, ease: "power2.in",
+                onComplete: () => { fadeOutGroup.visible = false; }
+            });
+        }
+
+        // --- Prepare and Start Fade In (Delayed) ---
+        gsap.delayedCall(fadeDuration * 0.5, () => {
+            if (fadeInGroup) {
+                fadeInGroup.visible = true; fadeInGroup.scale.set(fadeScale.x, fadeScale.y, fadeScale.z);
+                let targetScale = (page === 1) ? calculateP1Scale() : { x: 1, y: 1, z: 1 };
+                gsap.to(fadeInGroup.scale, { ...targetScale, duration: fadeDuration, ease: "power2.out" });
+            }
+            if (page === 2) {
+               updatePage2Selection(true); // Update content immediately for page 2
+               gsap.set(tooltip, { opacity: 1, pointerEvents: 'auto' });
+               gsap.to(tooltip, { duration: 2.5, opacity: 0, delay: 0.5, ease: "power3.out", onComplete: () => gsap.set(tooltip, {pointerEvents: 'none'}) });
+            } else {
+               gsap.killTweensOf(tooltip); gsap.set(tooltip, { opacity: 0, pointerEvents: 'none' });
+               // Ensure screenshot is hidden when switching to page 1
+               gsap.to(moduleScreenshot, {opacity: 0, duration: 0.3});
+            }
+            gsap.to(fadeInElements, {
+                opacity: 1, duration: fadeDuration, ease: "power2.out",
+                onStart: () => gsap.set(fadeInElements, { pointerEvents: 'auto' }),
+                onComplete: () => { isTransitioning = false; }
+            });
+        });
+    }
+
+    // --- Page 2 Carousel Logic (UPDATED with screenshot fade) ---
+    function navigateCarousel(direction) {
+        if (isTransitioning || page2Items.length === 0) return;
+        selectedIndex = (selectedIndex + direction + page2Items.length) % page2Items.length;
+        updatePage2Selection();
+    }
+    function updatePage2Selection(immediate = false) {
+        if (!page2Group || page2Items.length === 0) return;
+        // Ensure page 2 elements are visible if updating non-immediately
+        if (!immediate && !page2Group.visible) return;
+
+        const duration = immediate ? 0 : 0.8;
+        const screenshotFadeDuration = immediate ? 0 : 0.3; // Shorter fade for screenshot
+        const ease = "power3.out";
+        const currentItem = page2Items[selectedIndex];
+
+        if (!currentItem || !currentItem.object) { console.error("Selected item invalid at index:", selectedIndex); return; }
+
+        // Animate carousel position
+        gsap.to(carousel.position, { x: -currentItem.object.position.x, duration: duration, ease: ease });
+
+        // Animate item scales and stop rotation for non-selected
+        page2Items.forEach((item, i) => {
+            if (item && item.object) {
+                const isSelected = (i === selectedIndex);
+                let targetScale = item.isChessboard ? (isSelected ? 1.5 : 0.6) : (isSelected ? 2.5 : 0.8);
+                gsap.to(item.object.scale, { x: targetScale, y: targetScale, z: targetScale, duration: duration, ease: ease });
+                if (!isSelected) { gsap.killTweensOf(item.object.rotation); }
+            }
+        });
+
+        // --- Update Info and Screenshot Content ---
+        const updateContent = () => {
+            if (!currentItem) return; // Guard
+            page2Info.innerHTML = `<h2 class="text-2xl font-bold">${currentItem.title}</h2><p>${currentItem.desc}</p>`;
+            const screenshotUrl = moduleScreenshots[currentItem.title] || "";
+
+            // Animate screenshot opacity change
+            gsap.to(moduleScreenshot, {
+                opacity: 0,
+                duration: screenshotFadeDuration,
+                ease: "power1.in",
+                onComplete: () => {
+                    // Change content after fade out
+                    moduleScreenshot.innerHTML = screenshotUrl ? `<img src="${screenshotUrl}" alt="${currentItem.title} 截圖" />` : "";
+                    // Fade back in only if there's content
+                    if (screenshotUrl) {
+                        gsap.to(moduleScreenshot, {
+                            opacity: 1,
+                            duration: screenshotFadeDuration,
+                            ease: "power1.out",
+                            delay: 0.05 // Small delay before fading in
+                        });
+                    }
+                }
+            });
+        };
+
+        if (immediate) {
+            // Immediate update (e.g., on page load/switch)
+            page2Info.innerHTML = `<h2 class="text-2xl font-bold">${currentItem.title}</h2><p>${currentItem.desc}</p>`;
+            const screenshotUrl = moduleScreenshots[currentItem.title] || "";
+            moduleScreenshot.innerHTML = screenshotUrl ? `<img src="${screenshotUrl}" alt="${currentItem.title} 截圖" />` : "";
+            // Set opacity directly based on whether there's an image
+            gsap.set(moduleScreenshot, { opacity: screenshotUrl ? 1 : 0 });
+        } else {
+            // Delayed update for carousel navigation (allow model animation overlap)
+            gsap.delayedCall(duration * 0.3, updateContent);
+        }
+    }
+
+
+    // --- Animation Loop ---
+    function animate() {
+      requestAnimationFrame(animate);
+        if (currentPage === 2 && page2Group.visible && !isTransitioning && page2Items.length > 0) {
+          const currentItem = page2Items[selectedIndex];
+          if (currentItem && currentItem.object) {
+             if (!gsap.isTweening(currentItem.object.scale)) { currentItem.object.rotation.y += 0.005; }
+          }
+      }
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>

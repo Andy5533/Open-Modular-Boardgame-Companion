@@ -5,7 +5,7 @@
 ---
 演示網站: https://andy5533.github.io/A-web-companion-tools-page-for-board-game-/beta1.html
 
-介紹網站: https://andy5533.github.io/Open-Modular-Boardgame-Companion/beta2-3d.html
+介紹網站: https://andy5533.github.io/Open-Modular-Boardgame-Companion/beta3-3d.html
 ## 目錄
 
 - [簡介](#簡介)

@@ -3,9 +3,8 @@
 
 # 自由模組桌遊配套平臺
 ---
-演示網站: https://andy5533.github.io/A-web-companion-tools-page-for-board-game-/beta1.html
-
-介紹網站: https://andy5533.github.io/Open-Modular-Boardgame-Companion/beta2.5-3d.html
+所有模塊演示網站: https://andy5533.github.io/A-web-companion-tools-page-for-board-game-/PLAYGROUND/PLAYGROUND.html
+項目介紹3d網站: https://andy5533.github.io/Open-Modular-Boardgame-Companion/PLAYGROUND/PLAYGROUND3d.html
 ## 目錄
 
 - [簡介](#簡介)

@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多功能桌遊伴侶</title>
+  <!-- TailwindCSS 3 CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-papNMm2ia7P0MzzMBf3w0GF8ywKZo5eKh0iNX2pdDvKzD7VOM4F1b6VHx0GZZI6c8EOwjYxvW5jK+Dn4b+v4Hw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- 自訂樣式 -->
+  <style>
+    :root {
+        --卡片翻轉時間: 0.6s; /* CSS 變數定義翻轉時間 */
+        --選單動畫時間: 0.3s; /* 選單動畫時間 */
+    }
+
+    body {
+      background-color: #ffffff;
+      position: relative;
+      overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    /* 動畫背景 */
+    .動畫背景 { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; overflow: hidden; filter: blur(80px); opacity: 0.3; }
+    .背景氣泡 { position: absolute; border-radius: 50%; animation: 漂浮氣泡動畫 20s infinite ease-in-out; }
+    .氣泡1 { width: 300px; height: 300px; background: linear-gradient(45deg, #ff7676, #f54ea2); left: 10%; top: 20%; animation-delay: 0s; }
+    .氣泡2 { width: 250px; height: 250px; background: linear-gradient(45deg, #7c4dff, #7b1fa2); right: 15%; top: 15%; animation-delay: 2s; }
+    .氣泡3 { width: 200px; height: 200px; background: linear-gradient(45deg, #42a5f5, #0d47a1); left: 20%; bottom: 20%; animation-delay: 4s; }
+    .氣泡4 { width: 280px; height: 280px; background: linear-gradient(45deg, #66bb6a, #1b5e20); right: 20%; bottom: 15%; animation-delay: 6s; }
+    .氣泡5 { width: 220px; height: 220px; background: linear-gradient(45deg, #ffa726, #ef6c00); left: 40%; top: 50%; animation-delay: 8s; }
+    @keyframes 漂浮氣泡動畫 { 0% { transform: translate(0, 0) scale(1); } 33% { transform: translate(3%, 3%) scale(1.05); } 66% { transform: translate(-3%, -2%) scale(0.95); } 100% { transform: translate(0, 0) scale(1); } }
+
+    /* 表格樣式 */
+    .表格區塊 table { background: linear-gradient(135deg, #1e1e1e, #2a2a2a); border-collapse: separate; border-spacing: 0; box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); width: 100%; border-radius: 0.5rem; }
+    .表格區塊 th, .表格區塊 td { padding: 4px 6px; text-align: center; border-bottom: 1px solid #444; border-right: 1px solid #444; color: white; white-space: nowrap; font-size: 0.8rem; }
+    @media (min-width: 768px) { .表格區塊 th, .表格區塊 td { padding: 8px 12px; font-size: 0.875rem; } }
+    .表格區塊 th:last-child, .表格區塊 td:last-child { border-right: none; }
+    .表格區塊 tr:last-child td { border-bottom: none; }
+    .表格區塊 th { background: linear-gradient(135deg, #f39c12, #d35400); text-shadow: 1px 1px 2px #000; position: sticky; top: 0; z-index: 1; }
+    .表格區塊 tr:nth-child(even) { background: rgba(255, 255, 255, 0.08); }
+    .表格區塊 tr:nth-child(odd) { background: rgba(255, 255, 255, 0.03); }
+    .表格區塊 tr:hover { background: rgba(255, 255, 255, 0.15); transition: background 0.3s ease; color: #e0f7fa; }
+
+    /* 基礎內容容器樣式 */
+    .內容容器 { position: relative; z-index: 1; padding: 1.5rem; margin-bottom: 2.5rem; border-radius: 1rem; background-color: rgba(255, 255, 255, 0.55); backdrop-filter: blur(12px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08); }
+
+    /* 計算機按鈕樣式 */
+    .計算機按鈕, .科學計算機按鈕 { transition: background-color 0.2s ease, transform 0.1s ease; font-weight: 500; }
+    .計算機按鈕:active, .科學計算機按鈕:active { transform: scale(0.95); }
+    .按鈕-數字 { background-color: #3b82f6; } .按鈕-數字:hover { background-color: #2563eb; }
+    .按鈕-運算符 { background-color: #f97316; } .按鈕-運算符:hover { background-color: #ea580c; }
+    .按鈕-操作 { background-color: #ef4444; } .按鈕-操作:hover { background-color: #dc2626; }
+    .按鈕-等於 { background-color: #22c55e; } .按鈕-等於:hover { background-color: #16a34a; }
+    .按鈕-科學 { background-color: #6b7280; } .按鈕-科學:hover { background-color: #4b5563; }
+    .按鈕-切換 { background-color: #a855f7; } .按鈕-切換:hover { background-color: #9333ea; }
+
+    /* 卡片翻轉樣式 (通用) */
+    .卡片項目 { position: relative; transition: transform var(--卡片翻轉時間) ease; transform-style: preserve-3d; cursor: pointer; }
+    .卡片面 { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    .卡片正面 { transform: rotateY(180deg); background-color: #fff; }
+    .卡片背面 { background-color: #f0f0f0; }
+    .卡片項目.已翻面 { transform: rotateY(180deg); }
+
+    /* 圖像卡片正面樣式 */
+    .圖像卡片面 img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+    /* 撲克牌背面樣式 */
+    .撲克牌背面 { background: linear-gradient(135deg, #4a90e2 25%, transparent 25%) -8px 0, linear-gradient(225deg, #4a90e2 25%, transparent 25%) -8px 0, linear-gradient(315deg, #4a90e2 25%, transparent 25%) 0px 0, linear-gradient(45deg, #4a90e2 25%, transparent 25%) 0px 0; background-size: 16px 16px; background-color: #3b82f6; border: 5px solid white; box-sizing: border-box; }
+
+    /* 撲克牌正面樣式 */
+    .撲克牌正面 { display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 0.4rem; font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif; font-weight: bold; position: relative; color: black; border: 1px solid #ccc; box-sizing: border-box; }
+    .撲克牌正面.紅色 { color: #ef4444; }
+    .撲克牌正面.黑色 { color: #1f2937; }
+    .卡片角落 { position: absolute; text-align: center; line-height: 1; }
+    .卡片角落.左上 { top: 0.4rem; left: 0.4rem; font-size: 1.4em; }
+    .卡片角落.右下 { bottom: 0.4rem; right: 0.4rem; transform: rotate(180deg); font-size: 1.4em; }
+    .卡片角落 .點數 { display: block; font-size: 1em; }
+    .卡片角落 .花色 { display: block; font-size: 0.8em; margin-top: 0.05em; }
+    .卡片中央花色 { font-size: 3.5em; text-align: center; flex-grow: 1; display: flex; justify-content: center; align-items: center; opacity: 0.85; }
+
+    /* 移除數字輸入框的箭頭 */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
+    /* 行動選單動畫 */
+    #行動選單 {
+        transition: transform var(--選單動畫時間) ease-out, opacity var(--選單動畫時間) ease-out;
+        transform: translateY(-100%); /* 初始狀態：向上移出視窗 */
+        opacity: 0;
+        pointer-events: none; /* 隱藏時不可點擊 */
+    }
+    #行動選單.選單開啟 {
+        transform: translateY(0); /* 開啟狀態：回到原位 */
+        opacity: 1;
+        pointer-events: auto; /* 開啟時可點擊 */
+    }
+
+  </style>
+</head>
+<body class="text-gray-800 font-sans antialiased">
+  <!-- 動畫背景 -->
+  <div class="動畫背景"> <div class="背景氣泡 氣泡1"></div> <div class="背景氣泡 氣泡2"></div> <div class="背景氣泡 氣泡3"></div> <div class="背景氣泡 氣泡4"></div> <div class="背景氣泡 氣泡5"></div> </div>
+
+  <!-- 導航欄 -->
+  <nav class="fixed top-0 left-0 w-full bg-white/70 backdrop-blur-lg shadow z-50">
+    <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center"> <span id="導航欄標題" class="text-xl font-bold text-gray-800"></span> </div>
+        <div class="hidden md:block">
+          <div class="ml-10 flex items-baseline space-x-2">
+            <a href="#分數區塊" class="text-gray-700 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition transform hover:scale-105 whitespace-nowrap">快記</a>
+            <a href="#骰子區塊" class="text-gray-700 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition transform hover:scale-105 whitespace-nowrap">骰子</a>
+            <a href="#撲克牌區塊" class="text-gray-700 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition transform hover:scale-105 whitespace-nowrap">撲克牌</a>
+            <a href="#圖像卡片區塊" class="text-gray-700 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition transform hover:scale-105 whitespace-nowrap">抽卡(圖)</a>
+            <a href="#計算機區塊" class="text-gray-700 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition transform hover:scale-105 whitespace-nowrap">計算機</a>
+            <a href="#科學計算機區塊" class="text-gray-700 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition transform hover:scale-105 whitespace-nowrap">科學計算機</a>
+            <a href="#表格區塊" class="text-gray-700 hover:text-blue-800 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition transform hover:scale-105 whitespace-nowrap">表格</a>
+          </div>
+        </div>
+        <div class="md:hidden"> <button id="行動選單按鈕" class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-label="開啟選單" aria-expanded="false" aria-controls="行動選單"> <span class="sr-only">Open main menu</span> <i class="fas fa-bars text-xl"></i> </button> </div>
+      </div>
+    </div>
+    <div id="行動選單" class="md:hidden bg-white/90 backdrop-blur-md shadow-lg absolute top-16 left-0 right-0 z-40">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+         <a href="#分數區塊" class="text-gray-700 hover:bg-blue-100 block px-3 py-2 rounded-md text-base font-medium">快記模塊</a>
+         <a href="#骰子區塊" class="text-gray-700 hover:bg-blue-100 block px-3 py-2 rounded-md text-base font-medium">虛擬骰子模塊</a>
+         <a href="#撲克牌區塊" class="text-gray-700 hover:bg-blue-100 block px-3 py-2 rounded-md text-base font-medium">撲克牌模塊</a>
+         <a href="#圖像卡片區塊" class="text-gray-700 hover:bg-blue-100 block px-3 py-2 rounded-md text-base font-medium">抽卡模塊(圖)</a>
+         <a href="#計算機區塊" class="text-gray-700 hover:bg-blue-100 block px-3 py-2 rounded-md text-base font-medium">計算機模塊</a>
+         <a href="#科學計算機區塊" class="text-gray-700 hover:bg-blue-100 block px-3 py-2 rounded-md text-base font-medium">科學計算機</a>
+         <a href="#表格區塊" class="text-gray-700 hover:bg-blue-100 block px-3 py-2 rounded-md text-base font-medium">表格模塊</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主要內容 -->
+  <div class="pt-20 pb-10 max-w-7xl mx-auto px-4 space-y-10">
+    <!-- 頁首 GIF -->
+    <div class="flex justify-center mb-6"> <img src="GIF/310學測戰爭.gif" alt="網站標題GIF" class="max-w-full md:max-w-3/5 mx-auto" loading="lazy"> </div>
+
+    <!-- 分數區塊 -->
+    <section id="分數區塊" aria-labelledby="分數標題" class="內容容器">
+        <h2 id="分數標題" class="text-2xl font-bold mb-4 text-center">快記模塊</h2>
+        <div class="flex flex-wrap justify-center gap-4 md:gap-6">
+             <div class="flex flex-col items-center p-3 bg-white/40 backdrop-blur-md rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition duration-300 w-32 md:w-36"> <img src="國.png" alt="國文" class="w-16 md:w-20 mb-2" loading="lazy"> <div class="relative w-24 h-24 md:w-28 md:h-28"> <img src="框.png" alt="" class="absolute inset-0 w-full h-auto pointer-events-none" loading="lazy"> <input type="text" inputmode="numeric" pattern="[0-9]*" id="分數輸入_國文" placeholder="0" aria-label="國文分數" class="absolute inset-0 m-auto w-4/5 text-center text-lg md:text-xl bg-transparent border-none outline-none font-semibold text-gray-800"> </div> </div>
+             <div class="flex flex-col items-center p-3 bg-white/40 backdrop-blur-md rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition duration-300 w-32 md:w-36"> <img src="英.png" alt="英文" class="w-16 md:w-20 mb-2" loading="lazy"> <div class="relative w-24 h-24 md:w-28 md:h-28"> <img src="框.png" alt="" class="absolute inset-0 w-full h-auto pointer-events-none" loading="lazy"> <input type="text" inputmode="numeric" pattern="[0-9]*" id="分數輸入_英文" placeholder="0" aria-label="英文分數" class="absolute inset-0 m-auto w-4/5 text-center text-lg md:text-xl bg-transparent border-none outline-none font-semibold text-gray-800"> </div> </div>
+             <div class="flex flex-col items-center p-3 bg-white/40 backdrop-blur-md rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition duration-300 w-32 md:w-36"> <img src="數.png" alt="數學" class="w-16 md:w-20 mb-2" loading="lazy"> <div class="relative w-24 h-24 md:w-28 md:h-28"> <img src="框.png" alt="" class="absolute inset-0 w-full h-auto pointer-events-none" loading="lazy"> <input type="text" inputmode="numeric" pattern="[0-9]*" id="分數輸入_數學" placeholder="0" aria-label="數學分數" class="absolute inset-0 m-auto w-4/5 text-center text-lg md:text-xl bg-transparent border-none outline-none font-semibold text-gray-800"> </div> </div>
+             <div class="flex flex-col items-center p-3 bg-white/40 backdrop-blur-md rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition duration-300 w-32 md:w-36"> <img src="自.png" alt="自然" class="w-16 md:w-20 mb-2" loading="lazy"> <div class="relative w-24 h-24 md:w-28 md:h-28"> <img src="框.png" alt="" class="absolute inset-0 w-full h-auto pointer-events-none" loading="lazy"> <input type="text" inputmode="numeric" pattern="[0-9]*" id="分數輸入_自然" placeholder="0" aria-label="自然分數" class="absolute inset-0 m-auto w-4/5 text-center text-lg md:text-xl bg-transparent border-none outline-none font-semibold text-gray-800"> </div> </div>
+             <div class="flex flex-col items-center p-3 bg-white/40 backdrop-blur-md rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition duration-300 w-32 md:w-36"> <img src="社.png" alt="社會" class="w-16 md:w-20 mb-2" loading="lazy"> <div class="relative w-24 h-24 md:w-28 md:h-28"> <img src="框.png" alt="" class="absolute inset-0 w-full h-auto pointer-events-none" loading="lazy"> <input type="text" inputmode="numeric" pattern="[0-9]*" id="分數輸入_社會" placeholder="0" aria-label="社會分數" class="absolute inset-0 m-auto w-4/5 text-center text-lg md:text-xl bg-transparent border-none outline-none font-semibold text-gray-800"> </div> </div>
+             <div class="flex flex-col items-center p-3 bg-white/40 backdrop-blur-md rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition duration-300 w-32 md:w-36"> <img src="資金.png" alt="資金" class="w-16 md:w-20 mb-2" loading="lazy"> <div class="relative w-24 h-24 md:w-28 md:h-28"> <img src="框.png" alt="" class="absolute inset-0 w-full h-auto pointer-events-none" loading="lazy"> <input type="text" inputmode="numeric" pattern="[0-9]*" id="分數輸入_資金" placeholder="0" aria-label="資金分數" class="absolute inset-0 m-auto w-4/5 text-center text-lg md:text-xl bg-transparent border-none outline-none font-semibold text-gray-800"> </div> </div>
+        </div>
+    </section>
+
+    <!-- 骰子區塊 -->
+    <section id="骰子區塊" aria-labelledby="骰子標題" class="內容容器">
+      <div class="flex flex-col items-center p-4 rounded-lg">
+        <h2 id="骰子標題" class="text-2xl font-bold mb-4">虛擬骰子模塊</h2>
+        <div class="w-full mb-4 text-center">
+          <label for="骰子數量輸入" class="block text-lg font-semibold mb-2">選擇骰子數量</label>
+          <div class="flex justify-center items-center space-x-0">
+            <button id="減少骰子按鈕" aria-label="減少骰子數量" class="px-4 py-2 bg-red-500 text-white rounded-l hover:bg-red-600 transition">-</button>
+            <input type="number" id="骰子數量輸入" min="1" value="1" aria-label="骰子數量" class="w-20 text-center py-2 border-t border-b border-gray-300 text-lg font-bold appearance-none">
+            <button id="增加骰子按鈕" aria-label="增加骰子數量" class="px-4 py-2 bg-green-500 text-white rounded-r hover:bg-green-600 transition">+</button>
+          </div>
+        </div>
+        <div id="骰子容器" class="flex flex-wrap justify-center gap-3 md:gap-4 my-4 cursor-pointer min-h-[100px]" title="點擊這裡擲骰子"></div>
+        <div class="mt-4 text-center">
+          <div id="骰子結果顯示" class="text-xl font-semibold mb-2 h-6 text-gray-700" aria-live="polite">點擊骰子開始</div>
+          <div id="骰子總和顯示" class="text-3xl font-bold text-blue-700 mb-4" aria-live="polite">總點數：0</div>
+        </div>
+        <div class="flex flex-col items-center space-y-3 md:flex-row md:space-y-0 md:space-x-4">
+          <button id="擲骰子按鈕" class="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition transform hover:scale-105 w-full md:w-auto"> <i class="fas fa-dice mr-2" aria-hidden="true"></i>擲骰子 </button>
+          <button id="切換骰子音效按鈕" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition transform hover:scale-105 w-full md:w-auto" aria-pressed="false"> <i id="骰子音效圖標" class="fas fa-volume-up mr-2" aria-hidden="true"></i><span id="骰子音效文字">關閉音效</span> </button>
+        </div>
+        <audio id="骰子音效" src="骰.mp3" preload="auto"></audio>
+      </div>
+    </section>
+
+     <!-- 撲克牌區塊 -->
+    <section id="撲克牌區塊" aria-labelledby="撲克牌標題" class="內容容器">
+      <div class="flex flex-col items-center p-4 rounded-lg">
+        <h2 id="撲克牌標題" class="text-2xl font-bold mb-4">撲克牌模塊</h2>
+        <div class="w-full mb-4 text-center">
+          <label for="撲克牌數量輸入" class="block text-lg font-semibold mb-2">選擇抽卡數量 (標準52張)</label>
+          <div class="flex justify-center items-center space-x-0">
+            <button id="減少撲克牌按鈕" aria-label="減少抽卡數量" class="px-4 py-2 bg-red-500 text-white rounded-l hover:bg-red-600 transition">-</button>
+            <input type="number" id="撲克牌數量輸入" min="1" value="1" aria-label="抽卡數量" class="w-20 text-center py-2 border-t border-b border-gray-300 text-lg font-bold appearance-none">
+            <button id="增加撲克牌按鈕" aria-label="增加抽卡數量" class="px-4 py-2 bg-green-500 text-white rounded-r hover:bg-green-600 transition">+</button>
+          </div>
+        </div>
+        <div id="撲克牌容器" class="flex flex-wrap justify-center gap-4 md:gap-5 my-6 min-h-[220px] md:min-h-[250px] w-full items-center" style="perspective: 1200px;" aria-live="polite"></div>
+        <div class="mt-4 flex flex-col items-center space-y-3 md:flex-row md:space-y-0 md:space-x-4">
+          <button id="抽撲克牌按鈕" class="px-6 py-3 bg-purple-500 text-white rounded hover:bg-purple-600 transition transform hover:scale-105 w-full md:w-auto"> <i class="fas fa-hand-sparkles mr-2" aria-hidden="true"></i>抽撲克牌 </button>
+          <button id="切換撲克牌音效按鈕" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition transform hover:scale-105 w-full md:w-auto" aria-pressed="false"> <i id="撲克牌音效圖標" class="fas fa-volume-up mr-2" aria-hidden="true"></i><span id="撲克牌音效文字">關閉音效</span> </button>
+        </div>
+         <div id="撲克牌錯誤訊息" class="text-red-600 font-semibold mt-3 text-center h-6"></div>
+        <audio id="撲克牌音效" src="翻牌.mp3" preload="auto"></audio>
+      </div>
+    </section>
+
+    <!-- 圖像卡片區塊 -->
+    <section id="圖像卡片區塊" aria-labelledby="圖像卡片標題" class="內容容器">
+      <div class="flex flex-col items-center p-4 rounded-lg">
+        <h2 id="圖像卡片標題" class="text-2xl font-bold mb-4">抽卡模塊 (圖片)</h2>
+        <div class="w-full mb-4 text-center">
+          <label for="圖像卡片數量輸入" class="block text-lg font-semibold mb-2">選擇抽卡數量 (可用 <span id="最大圖像卡片數顯示">?</span> 張)</label>
+          <div class="flex justify-center items-center space-x-0">
+            <button id="減少圖像卡片按鈕" aria-label="減少抽卡數量" class="px-4 py-2 bg-red-500 text-white rounded-l hover:bg-red-600 transition">-</button>
+            <input type="number" id="圖像卡片數量輸入" min="1" value="1" aria-label="抽卡數量" class="w-20 text-center py-2 border-t border-b border-gray-300 text-lg font-bold appearance-none">
+            <button id="增加圖像卡片按鈕" aria-label="增加抽卡數量" class="px-4 py-2 bg-green-500 text-white rounded-r hover:bg-green-600 transition">+</button>
+          </div>
+        </div>
+        <div id="圖像卡片容器" class="flex flex-wrap justify-center gap-4 md:gap-5 my-6 min-h-[220px] md:min-h-[250px] w-full items-center" style="perspective: 1200px;" aria-live="polite"></div>
+        <div class="mt-4 flex flex-col items-center space-y-3 md:flex-row md:space-y-0 md:space-x-4">
+          <button id="抽圖像卡片按鈕" class="px-6 py-3 bg-teal-500 text-white rounded hover:bg-teal-600 transition transform hover:scale-105 w-full md:w-auto"> <i class="fas fa-image mr-2" aria-hidden="true"></i>抽卡 (圖) </button>
+          <button id="切換圖像卡片音效按鈕" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition transform hover:scale-105 w-full md:w-auto" aria-pressed="false"> <i id="圖像卡片音效圖標" class="fas fa-volume-up mr-2" aria-hidden="true"></i><span id="圖像卡片音效文字">關閉音效</span> </button>
+        </div>
+        <div id="圖像卡片錯誤訊息" class="text-red-600 font-semibold mt-3 text-center h-6"></div>
+        <audio id="圖像卡片音效" src="翻牌.mp3" preload="auto"></audio>
+      </div>
+    </section>
+
+    <!-- 計算機區塊 -->
+    <section id="計算機區塊" aria-labelledby="計算機標題" class="內容容器">
+       <div class="flex flex-col items-center p-4 rounded-lg max-w-md mx-auto">
+         <h2 id="計算機標題" class="text-2xl font-bold mb-4">簡易計算機</h2>
+         <div class="w-full mb-4"> <input type="text" id="計算機顯示" aria-label="簡易計算機顯示屏" class="w-full p-3 text-right text-3xl border rounded bg-gray-100 text-gray-800" value="0" readonly> </div>
+         <div class="grid grid-cols-4 gap-2 w-full"> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="7">7</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="8">8</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="9">9</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-運算符" aria-label="除" data-value="/">/</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="4">4</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="5">5</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="6">6</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-運算符" aria-label="乘" data-value="*">*</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="1">1</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="2">2</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="3">3</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-運算符" aria-label="減" data-value="-">-</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value="0">0</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-數字" data-value=".">.</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-等於 col-span-1" id="計算機等於按鈕" aria-label="等於" data-value="=">=</button> <button class="計算機按鈕 p-4 text-xl text-white rounded 按鈕-運算符" aria-label="加" data-value="+">+</button> </div>
+         <div class="mt-4 w-full"> <button id="計算機清除按鈕" class="計算機按鈕 w-full px-6 py-3 text-white rounded 按鈕-操作 transform hover:scale-105"><i class="fas fa-trash mr-2" aria-hidden="true"></i>清除 (C)</button> </div>
+       </div>
+    </section>
+
+    <!-- 科學計算機區塊 -->
+    <section id="科學計算機區塊" aria-labelledby="科學計算機標題" class="內容容器">
+       <div class="flex flex-col items-center p-4 rounded-lg max-w-lg mx-auto">
+         <h2 id="科學計算機標題" class="text-2xl font-bold mb-4">科學計算機</h2>
+         <div class="w-full mb-4"> <input type="text" id="科學計算機顯示" aria-label="科學計算機顯示屏" class="w-full p-3 text-right text-3xl border rounded bg-gray-100 font-mono text-gray-800" value="0"> </div>
+         <div class="grid grid-cols-5 gap-2 w-full"> <button id="切換科學功能按鈕" class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-切換 col-span-1" title="切換進階功能" aria-expanded="false" aria-controls="科學功能按鈕區"><i class="fas fa-flask" aria-hidden="true"></i> Sci</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-運算符" data-value="(">(</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-運算符" data-value=")">)</button> <button id="科學計算機清除按鈕" class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-操作" data-value="C" aria-label="清除">C</button> <button id="科學計算機退格按鈕" class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-操作" data-value="Backspace" aria-label="退格"><i class="fas fa-backspace" aria-hidden="true"></i></button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="7">7</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="8">8</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="9">9</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-運算符" aria-label="除" data-value="/">/</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-運算符" aria-label="百分比" data-value="%">%</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="4">4</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="5">5</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="6">6</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-運算符" aria-label="乘" data-value="*">*</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" aria-label="平方根" data-value="sqrt(">√</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="1">1</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="2">2</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value="3">3</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-運算符" aria-label="減" data-value="-">-</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" aria-label="次方" data-value="**">xʸ</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字 col-span-1" data-value="0">0</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-數字" data-value=".">.</button> <button id="科學計算機等於按鈕" class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-等於 col-span-1" data-value="=" aria-label="等於">=</button> <button class="科學計算機按鈕 p-3 text-xl text-white rounded 按鈕-運算符" aria-label="加" data-value="+">+</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" aria-label="圓周率" data-value="Math.PI">π</button> </div>
+         <div id="科學功能按鈕區" class="grid grid-cols-5 gap-2 w-full mt-2 hidden"> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" data-value="sin(">sin</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" data-value="cos(">cos</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" data-value="tan(">tan</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" aria-label="常用對數" data-value="log10(">log</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" aria-label="自然對數" data-value="log(">ln</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" data-value="asin(">sin⁻¹</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" data-value="acos(">cos⁻¹</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" data-value="atan(">tan⁻¹</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" aria-label="自然常數e" data-value="Math.E">e</button> <button class="科學計算機按鈕 p-3 text-sm text-white rounded 按鈕-科學" aria-label="階乘" data-value="!">n!</button> </div>
+       </div>
+    </section>
+
+    <!-- 表格區塊 -->
+    <section id="表格區塊" aria-labelledby="表格標題" class="內容容器">
+        <div class="bg-[#2c2c2c]/70 backdrop-blur-md rounded-lg shadow-lg overflow-hidden">
+            <div class="p-4 md:p-6 text-white">
+                <h1 id="表格標題" class="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-100">分數結算</h1>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full 表格區塊">
+                      <thead>
+                        <tr class="bg-gradient-to-r from-red-600 to-orange-600 text-center text-lg">
+                          <th class="border p-2">科系</th>
+                          <th class="border p-2">起薪</th>
+                          <th class="border p-2">漲薪倍率</th>
+                          <th class="border p-2">國文</th>
+                          <th class="border p-2">英文</th>
+                          <th class="border p-2">數學</th>
+                          <th class="border p-2">社會</th>
+                          <th class="border p-2">自然</th>
+                          <th class="border p-2">其他</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">醫牙</td>
+                          <td class="border p-2 text-center">NT$80,000</td>
+                          <td class="border p-2 text-center">NT$500</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">12</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">電資</td>
+                          <td class="border p-2 text-center">NT$65,000</td>
+                          <td class="border p-2 text-center">NT$1000</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">法律</td>
+                          <td class="border p-2 text-center">NT$50,000</td>
+                          <td class="border p-2 text-center">NT$600</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">12</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">藥學</td>
+                          <td class="border p-2 text-center">NT$55,000</td>
+                          <td class="border p-2 text-center">NT$700</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">土木</td>
+                          <td class="border p-2 text-center">NT$45,000</td>
+                          <td class="border p-2 text-center">NT$500</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">設計</td>
+                          <td class="border p-2 text-center">NT$35,000</td>
+                          <td class="border p-2 text-center">NT$400</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">外文</td>
+                          <td class="border p-2 text-center">NT$30,000</td>
+                          <td class="border p-2 text-center">NT$300</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">12</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">心理</td>
+                          <td class="border p-2 text-center">NT$32,000</td>
+                          <td class="border p-2 text-center">NT$350</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">中文</td>
+                          <td class="border p-2 text-center">NT$28,000</td>
+                          <td class="border p-2 text-center">NT$300</td>
+                          <td class="border p-2 text-center">12</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">7</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">哲學</td>
+                          <td class="border p-2 text-center">NT$25,000</td>
+                          <td class="border p-2 text-center">NT$250</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">護理</td>
+                          <td class="border p-2 text-center">NT$38,000</td>
+                          <td class="border p-2 text-center">NT$350</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">資管</td>
+                          <td class="border p-2 text-center">NT$40,000</td>
+                          <td class="border p-2 text-center">NT$600</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">體育</td>
+                          <td class="border p-2 text-center">NT$30,000</td>
+                          <td class="border p-2 text-center">NT$200</td>
+                          <td class="border p-2 text-center">7</td>
+                          <td class="border p-2 text-center">6</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">音樂</td>
+                          <td class="border p-2 text-center">NT$33,000</td>
+                          <td class="border p-2 text-center">NT$250</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">6</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">美術</td>
+                          <td class="border p-2 text-center">NT$32,000</td>
+                          <td class="border p-2 text-center">NT$250</td>
+                          <td class="border p-2 text-center">7</td>
+                          <td class="border p-2 text-center">7</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">建築</td>
+                          <td class="border p-2 text-center">NT$42,000</td>
+                          <td class="border p-2 text-center">NT$550</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">國際企業</td>
+                          <td class="border p-2 text-center">NT$45,000</td>
+                          <td class="border p-2 text-center">NT$700</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">12</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">資安</td>
+                          <td class="border p-2 text-center">NT$55,000</td>
+                          <td class="border p-2 text-center">NT$900</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">12</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">遊戲設計</td>
+                          <td class="border p-2 text-center">NT$38,000</td>
+                          <td class="border p-2 text-center">NT$450</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">新聞傳播</td>
+                          <td class="border p-2 text-center">NT$35,000</td>
+                          <td class="border p-2 text-center">NT$350</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">7</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">公關</td>
+                          <td class="border p-2 text-center">NT$33,000</td>
+                          <td class="border p-2 text-center">NT$300</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">6</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-900 hover:bg-red-800 transition">
+                          <td class="border p-2 text-center">生物科技</td>
+                          <td class="border p-2 text-center">NT$50,000</td>
+                          <td class="border p-2 text-center">NT$800</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">11</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">10</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                        <tr class="bg-red-800 hover:bg-red-700 transition">
+                          <td class="border p-2 text-center">化學工程</td>
+                          <td class="border p-2 text-center">NT$48,000</td>
+                          <td class="border p-2 text-center">NT$750</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">8</td>
+                          <td class="border p-2 text-center">12</td>
+                          <td class="border p-2 text-center">–</td>
+                          <td class="border p-2 text-center">9</td>
+                          <td class="border p-2 text-center">–</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                </div>
+                <div class="mt-6"> <h2 class="text-xl md:text-2xl font-bold text-center mb-4 text-gray-200">結算規則</h2> <ul class="list-disc list-inside space-y-2 text-sm md:text-lg pl-4 text-gray-300">
+                  <li>每個科系的「固定需求分數」為最低門檻，需達到該分數才能進入該科系。</li>
+                  <li>若有採計的科目超過該科系的固定需求分數，每超出 1 級分可擲骰子 1 次。</li>
+                  <li>所有骰子點數累計後，乘上該科系的「漲薪倍率」，即為該角色的額外加薪金額。</li>
+                  <li>以(加薪+起薪+剩餘資金)決定勝負。</li>
+                 </ul> </div>
+            </div>
+        </div>
+    </section>
+  </div>
+
+<!-- 頁腳區塊 -->
+<footer class="bg-gray-200 border-t mt-10 py-6 relative z-10">
+  <div class="container mx-auto text-center px-4">
+    <p class="text-gray-700 mb-4">作者姓名：蔡富森</p>
+    <div class="flex justify-center items-center space-x-6 mb-4"> <a href="https://github.com/Andy5533/Open-Modular-Boardgame-Companion" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-900 transition"><i class="fab fa-github fa-lg mr-1" aria-hidden="true"></i> GitHub</a> <a href="mailto:andy55335533@gmail.com" class="text-gray-600 hover:text-gray-900 transition"><i class="fas fa-envelope fa-lg mr-1" aria-hidden="true"></i> Email</a> <a href="https://andy5533.github.io/Open-Modular-Boardgame-Companion/PLAYGROUND/PLAYGROUND3d" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-900 transition"><i class="fas fa-info-circle fa-lg mr-1" aria-hidden="true"></i> 介紹網站</a> </div>
+    <p class="text-gray-600 text-sm">© 2025 蔡富森. 版權所有。</p>
+  </div>
+</footer>
+
+<!-- JavaScript 開始 -->
+<script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+
+      const 卡片翻轉動畫時長 = 600; // 毫秒 (需與 CSS --卡片翻轉時間 匹配)
+
+      // --- Typed.js 初始化 ---
+      var 打字效果 = new Typed("#導航欄標題", { strings: ["Open-Modular-Boardgame-Companion", "310學測戰爭"], typeSpeed: 80, backSpeed: 40, backDelay: 1500, loop: true, showCursor: true, cursorChar: '_', });
+
+      // --- 行動選單切換 ---
+      const 行動選單按鈕 = document.getElementById('行動選單按鈕');
+      const 行動選單 = document.getElementById('行動選單');
+      const 行動選單圖標 = 行動選單按鈕?.querySelector('i');
+      if (行動選單按鈕 && 行動選單 && 行動選單圖標) {
+          行動選單按鈕.addEventListener('click', () => { 行動選單.classList.toggle('選單開啟'); const 是否開啟 = 行動選單.classList.contains('選單開啟'); 行動選單圖標.classList.toggle('fa-bars', !是否開啟); 行動選單圖標.classList.toggle('fa-times', 是否開啟); 行動選單按鈕.setAttribute('aria-expanded', String(是否開啟)); });
+          行動選單.querySelectorAll('a').forEach(連結 => { 連結.addEventListener('click', () => { 行動選單.classList.remove('選單開啟'); 行動選單圖標.classList.remove('fa-times'); 行動選單圖標.classList.add('fa-bars'); 行動選單按鈕.setAttribute('aria-expanded', 'false'); }); });
+      }
+
+      // --- 分數輸入驗證 (只允許數字) ---
+      const 分數輸入框集合 = document.querySelectorAll('#分數區塊 input[type="text"]');
+      分數輸入框集合.forEach(輸入框 => { 輸入框.addEventListener('input', function(事件) { this.value = this.value.replace(/[^0-9]/g, ''); }); });
+
+      // --- 輔助函數: 陣列洗牌 ---
+      function 洗牌函數(陣列) { for (let i = 陣列.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [陣列[i], 陣列[j]] = [陣列[j], 陣列[i]]; } return 陣列; }
+
+    // --- 骰子模塊邏輯 (音效不變) ---
+    (() => {
+          const 區塊 = document.getElementById('骰子區塊');
+          if (!區塊) return;
+          const 骰子容器 = 區塊.querySelector('#骰子容器');
+          const 骰子結果顯示 = 區塊.querySelector('#骰子結果顯示');
+          const 骰子總和顯示 = 區塊.querySelector('#骰子總和顯示');
+          const 骰子音效 = 區塊.querySelector('#骰子音效');
+          const 切換骰子音效按鈕 = 區塊.querySelector('#切換骰子音效按鈕');
+          const 擲骰子按鈕 = 區塊.querySelector('#擲骰子按鈕');
+          const 骰子數量輸入 = 區塊.querySelector('#骰子數量輸入');
+          const 減少骰子按鈕 = 區塊.querySelector('#減少骰子按鈕');
+          const 增加骰子按鈕 = 區塊.querySelector('#增加骰子按鈕');
+          const 骰子音效圖標 = 區塊.querySelector('#骰子音效圖標');
+          const 骰子音效文字 = 區塊.querySelector('#骰子音效文字');
+          let 是否啟用骰子音效 = true;
+          let 目前骰子數量 = 1;
+          let 骰子結果陣列 = [];
+          let 是否正在擲骰 = false;
+          const 骰子圖片對應 = { 1: '骰1.png', 2: '骰2.png', 3: '骰3.png', 4: '骰4.png', 5: '骰5.png', 6: '骰6.png' };
+          const 骰子滾動圖片 = '骰轉.png';
+          const 骰子預設圖片 = '骰.png';
+          function 更新骰子顯示() { if (!骰子容器) return; 骰子容器.innerHTML = ''; 骰子結果陣列 = []; 是否正在擲骰 = false; if(目前骰子數量 < 1) { 目前骰子數量 = 1; if(骰子數量輸入) 骰子數量輸入.value = 目前骰子數量; } const 骰子尺寸樣式 = 目前骰子數量 <= 3 ? 'w-20 h-20 md:w-24 md:h-24' : 目前骰子數量 <= 6 ? 'w-16 h-16 md:w-20 md:h-20' : 目前骰子數量 <= 10 ? 'w-12 h-12 md:w-16 md:h-16' : 'w-10 h-10 md:w-12 md:h-12'; for (let i = 0; i < 目前骰子數量; i++) { const 骰子元素 = document.createElement('div'); 骰子元素.className = `${骰子尺寸樣式} relative dice-item`; 骰子元素.innerHTML = `<img src="${骰子預設圖片}" alt="骰子 ${i + 1}" class="w-full h-full object-contain drop-shadow-md">`; 骰子容器.appendChild(骰子元素); 骰子結果陣列.push(0); } if(骰子結果顯示) 骰子結果顯示.textContent = '點擊骰子或按鈕開始'; if(骰子總和顯示) 骰子總和顯示.textContent = '總點數：0'; }
+          function 執行擲骰子() { if (是否正在擲骰 || !骰子容器) return; 是否正在擲骰 = true; if (是否啟用骰子音效 && 骰子音效) { 骰子音效.currentTime = 0; 骰子音效.play().catch(錯誤 => console.error("骰子音效播放失敗:", 錯誤)); } const 所有骰子圖片 = 骰子容器.querySelectorAll('.dice-item img'); 所有骰子圖片.forEach((圖片) => { 圖片.src = 骰子滾動圖片; 圖片.classList.add('animate-spin'); }); if(骰子結果顯示) 骰子結果顯示.textContent = '擲骰中...'; if(骰子總和顯示) 骰子總和顯示.textContent = '總點數：...'; setTimeout(() => { let 目前總和 = 0; 骰子結果陣列 = []; 所有骰子圖片.forEach((圖片, 索引) => { const 結果 = Math.floor(Math.random() * 6) + 1; 骰子結果陣列.push(結果); 目前總和 += 結果; 圖片.src = 骰子圖片對應[結果]; 圖片.classList.remove('animate-spin'); 圖片.alt = `骰子 ${索引 + 1} 結果 ${結果}`; }); if(骰子結果顯示) 骰子結果顯示.textContent = '結果：' + 骰子結果陣列.join(', '); if(骰子總和顯示) 骰子總和顯示.textContent = '總點數：' + 目前總和; 是否正在擲骰 = false; }, 1000); }
+          減少骰子按鈕?.addEventListener('click', () => { if (目前骰子數量 > 1) { 目前骰子數量--; if(骰子數量輸入) 骰子數量輸入.value = 目前骰子數量; 更新骰子顯示(); } });
+          增加骰子按鈕?.addEventListener('click', () => { 目前骰子數量++; if(骰子數量輸入) 骰子數量輸入.value = 目前骰子數量; 更新骰子顯示(); });
+          骰子數量輸入?.addEventListener('change', () => { let 新數量 = parseInt(骰子數量輸入.value); if (isNaN(新數量) || 新數量 < 1) 新數量 = 1; 目前骰子數量 = 新數量; 骰子數量輸入.value = 目前骰子數量; 更新骰子顯示(); });
+          擲骰子按鈕?.addEventListener('click', 執行擲骰子);
+          骰子容器?.addEventListener('click', 執行擲骰子);
+          切換骰子音效按鈕?.addEventListener('click', () => { 是否啟用骰子音效 = !是否啟用骰子音效; if (骰子音效圖標 && 骰子音效文字) { 骰子音效圖標.className = `fas ${是否啟用骰子音效 ? 'fa-volume-up' : 'fa-volume-mute'} mr-2`; 骰子音效文字.textContent = 是否啟用骰子音效 ? '關閉音效' : '開啟音效'; 切換骰子音效按鈕.setAttribute('aria-pressed', String(!是否啟用骰子音效)); } if (!是否啟用骰子音效 && 骰子音效 && !骰子音效.paused) { 骰子音效.pause(); } });
+          更新骰子顯示();
+    })();
+
+
+   // --- 撲克牌模塊邏輯 ---
+    (() => {
+          const 區塊 = document.getElementById('撲克牌區塊');
+          if (!區塊) return;
+          const 卡片容器 = 區塊.querySelector('#撲克牌容器');
+          const 數量輸入 = 區塊.querySelector('#撲克牌數量輸入');
+          const 減少按鈕 = 區塊.querySelector('#減少撲克牌按鈕');
+          const 增加按鈕 = 區塊.querySelector('#增加撲克牌按鈕');
+          const 抽牌按鈕 = 區塊.querySelector('#抽撲克牌按鈕');
+          const 音效 = 區塊.querySelector('#撲克牌音效');
+          const 切換音效按鈕 = 區塊.querySelector('#切換撲克牌音效按鈕');
+          const 音效圖標 = 區塊.querySelector('#撲克牌音效圖標');
+          const 音效文字 = 區塊.querySelector('#撲克牌音效文字');
+          const 錯誤訊息區塊 = 區塊.querySelector('#撲克牌錯誤訊息');
+          const 最大撲克牌數 = 52;
+          const 花色符號 = { 'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣' };
+          const 點數符號 = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+          let 目前數量 = 1;
+          let 已抽卡片資料 = [];
+          let 是否啟用音效 = true;
+          let 是否正在動畫 = false;
+          let 牌堆 = [];
+          function 建立牌堆() { 牌堆 = []; for (const 花色鍵值 of Object.keys(花色符號)) { for (const 點數 of 點數符號) { 牌堆.push(花色鍵值 + 點數); } } }
+          function 取得卡片HTML(卡片字串) { const 花色鍵值 = 卡片字串.charAt(0); const 點數 = 卡片字串.substring(1); const 花色圖案 = 花色符號[花色鍵值]; const 顏色樣式 = (花色鍵值 === 'H' || 花色鍵值 === 'D') ? '紅色' : '黑色'; return ` <div class="卡片角落 左上"> <span class="點數 ${點數 === '10' ? '點數-10' : ''}">${點數}</span> <span class="花色">${花色圖案}</span> </div> <div class="卡片中央花色">${花色圖案}</div> <div class="卡片角落 右下"> <span class="點數 ${點數 === '10' ? '點數-10' : ''}">${點數}</span> <span class="花色">${花色圖案}</span> </div> `; }
+          function 更新卡片顯示(顯示背面 = true) { if (!卡片容器) return; 卡片容器.innerHTML = ''; 已抽卡片資料 = []; 是否正在動畫 = false; if (錯誤訊息區塊) 錯誤訊息區塊.textContent = ''; if (目前數量 < 1) { 目前數量 = 1; if(數量輸入) 數量輸入.value = 目前數量; } const 卡片尺寸樣式 = 'w-28 h-40 md:w-32 md:h-44'; for (let i = 0; i < 目前數量; i++) { const 卡片項目 = document.createElement('div'); 卡片項目.className = `卡片項目 ${卡片尺寸樣式}`; const 卡片背面 = document.createElement('div'); 卡片背面.className = '卡片面 卡片背面 撲克牌背面'; const 卡片正面 = document.createElement('div'); 卡片正面.className = '卡片面 卡片正面 撲克牌正面'; 卡片項目.appendChild(卡片背面); 卡片項目.appendChild(卡片正面); if (!顯示背面) { 卡片項目.classList.add('已翻面'); } 已抽卡片資料.push({ 卡片字串: null, 元素: 卡片項目, 是否已翻面: !顯示背面 }); 卡片項目.addEventListener('click', () => { 處理卡片點擊(卡片項目, i); }); 卡片容器.appendChild(卡片項目); } }
+          function 處理卡片點擊(卡片項目, 索引) { if (是否正在動畫) return; const 卡片資料 = 已抽卡片資料[索引]; if (卡片資料 && 卡片資料.是否已翻面) { 重置所有卡片為背面(); } else { 執行抽牌與翻面(); } }
+
+          async function 重置所有卡片為背面(之後更新顯示 = true) {
+              if (是否正在動畫) return;
+              const 當前已翻面 = 已抽卡片資料.filter(cd => cd.是否已翻面);
+              if (當前已翻面.length === 0) { if (之後更新顯示) 更新卡片顯示(true); return; }
+              是否正在動畫 = true;
+              if (錯誤訊息區塊) 錯誤訊息區塊.textContent = '';
+
+              const 翻轉承諾 = 當前已翻面.map((卡片資料, 索引) => {
+                  return new Promise(解決 => {
+                      setTimeout(() => {
+                          // *** 在移除 class 的同時播放音效 ***
+                          if (是否啟用音效 && 音效) {
+                              音效.currentTime = 0;
+                              音效.play().catch(錯誤 => console.error("撲克牌蓋牌音效播放失敗:", 錯誤));
+                          }
+                          卡片資料.元素.classList.remove('已翻面');
+                          卡片資料.是否已翻面 = false;
+                          解決();
+                      }, 索引 * 50); // 錯開播放
+                  });
+              });
+              await Promise.all(翻轉承諾);
+
+              return new Promise(解決 => { setTimeout(() => { 是否正在動畫 = false; if (之後更新顯示) { 更新卡片顯示(true); } 解決(); }, 卡片翻轉動畫時長 + (當前已翻面.length - 1) * 50); });
+          }
+
+           async function 執行抽牌與翻面() {
+              if (是否正在動畫) return;
+              const 是否有已翻面 = 已抽卡片資料.some(cd => cd.是否已翻面);
+              if (是否有已翻面) { await 重置所有卡片為背面(false); }
+              是否正在動畫 = true;
+              if (錯誤訊息區塊) 錯誤訊息區塊.textContent = '';
+              const 洗牌後牌堆 = 洗牌函數([...牌堆]);
+              if (目前數量 > 最大撲克牌數) { if(錯誤訊息區塊) 錯誤訊息區塊.textContent = `錯誤：無法抽取超過 ${最大撲克牌數} 張撲克牌！`; 是否正在動畫 = false; return; }
+              if (目前數量 > 洗牌後牌堆.length) { if(錯誤訊息區塊) 錯誤訊息區塊.textContent = '錯誤：牌堆不足！'; 是否正在動畫 = false; return; }
+              const 新抽的牌 = 洗牌後牌堆.slice(0, 目前數量);
+
+              // *** 移除在這裡播放一次的音效 ***
+              // if (是否啟用音效 && 音效) { 音效.currentTime = 0; 音效.play().catch(錯誤 => console.error("撲克牌音效播放失敗:", 錯誤)); }
+
+              const 翻轉承諾 = 已抽卡片資料.map((卡片資料, 索引) => {
+                   const 抽到卡片字串 = 新抽的牌[索引];
+                   卡片資料.卡片字串 = 抽到卡片字串;
+                   const 卡片項目 = 卡片資料.元素;
+                   const 正面 = 卡片項目.querySelector('.撲克牌正面');
+                   const 花色鍵值 = 抽到卡片字串.charAt(0);
+                   const 顏色樣式 = (花色鍵值 === 'H' || 花色鍵值 === 'D') ? '紅色' : '黑色';
+                   if (正面) { 正面.innerHTML = 取得卡片HTML(抽到卡片字串); 正面.classList.remove('紅色', '黑色'); 正面.classList.add(顏色樣式); }
+                   return new Promise(解決 => {
+                       setTimeout(() => {
+                           // *** 在添加 class 的同時播放音效 ***
+                           if (是否啟用音效 && 音效) {
+                               音效.currentTime = 0;
+                               音效.play().catch(錯誤 => console.error("撲克牌翻牌音效播放失敗:", 錯誤));
+                           }
+                           卡片項目.classList.add('已翻面');
+                           卡片資料.是否已翻面 = true;
+                           解決();
+                       }, 索引 * 80); // 錯開播放
+                   });
+               });
+              await Promise.all(翻轉承諾);
+              setTimeout(() => { 是否正在動畫 = false; }, 卡片翻轉動畫時長 + (已抽卡片資料.length - 1) * 80);
+           }
+
+          減少按鈕?.addEventListener('click', () => { if (目前數量 > 1) { 目前數量--; if(數量輸入) 數量輸入.value = 目前數量; 重置所有卡片為背面(); } });
+          增加按鈕?.addEventListener('click', () => { 目前數量++; if(數量輸入) 數量輸入.value = 目前數量; 重置所有卡片為背面(); });
+          數量輸入?.addEventListener('change', () => { let 新數量 = parseInt(數量輸入.value); if (isNaN(新數量) || 新數量 < 1) 新數量 = 1; 目前數量 = 新數量; 數量輸入.value = 目前數量; 重置所有卡片為背面(); });
+          抽牌按鈕?.addEventListener('click', 執行抽牌與翻面);
+          切換音效按鈕?.addEventListener('click', () => { 是否啟用音效 = !是否啟用音效; if (音效圖標 && 音效文字) { 音效圖標.className = `fas ${是否啟用音效 ? 'fa-volume-up' : 'fa-volume-mute'} mr-2`; 音效文字.textContent = 是否啟用音效 ? '關閉音效' : '開啟音效'; 切換音效按鈕.setAttribute('aria-pressed', String(!是否啟用音效)); } if (!是否啟用音效 && 音效 && !音效.paused) { 音效.pause(); } });
+          建立牌堆();
+          更新卡片顯示(true);
+    })();
+
+    // --- 圖像卡片模塊邏輯 ---
+    (() => {
+          const 區塊 = document.getElementById('圖像卡片區塊');
+          if (!區塊) return;
+          const 卡片容器 = 區塊.querySelector('#圖像卡片容器');
+          const 數量輸入 = 區塊.querySelector('#圖像卡片數量輸入');
+          const 減少按鈕 = 區塊.querySelector('#減少圖像卡片按鈕');
+          const 增加按鈕 = 區塊.querySelector('#增加圖像卡片按鈕');
+          const 抽牌按鈕 = 區塊.querySelector('#抽圖像卡片按鈕');
+          const 音效 = 區塊.querySelector('#圖像卡片音效');
+          const 切換音效按鈕 = 區塊.querySelector('#切換圖像卡片音效按鈕');
+          const 音效圖標 = 區塊.querySelector('#圖像卡片音效圖標');
+          const 音效文字 = 區塊.querySelector('#圖像卡片音效文字');
+          const 最大卡片數顯示 = 區塊.querySelector('#最大圖像卡片數顯示');
+          const 錯誤訊息區塊 = 區塊.querySelector('#圖像卡片錯誤訊息');
+          const 卡片背面圖片 = 'cards/0.png';
+          const 卡片圖片基礎路徑 = 'cards/';
+          const 最大圖像卡片編號 = 52; // ***** 請設置為您 cards 文件夾中最高的卡片編號 *****
+          let 目前數量 = 1;
+          let 已抽卡片資料 = [];
+          let 是否啟用音效 = true;
+          let 是否正在動畫 = false;
+          let 圖像卡片池 = [];
+          function 初始化圖像卡片池() { 圖像卡片池 = []; for (let i = 1; i <= 最大圖像卡片編號; i++) { 圖像卡片池.push(i); } if(最大卡片數顯示) 最大卡片數顯示.textContent = String(最大圖像卡片編號); }
+          function 更新卡片顯示(顯示背面 = true) { if (!卡片容器) return; 卡片容器.innerHTML = ''; 已抽卡片資料 = []; 是否正在動畫 = false; if (錯誤訊息區塊) 錯誤訊息區塊.textContent = ''; if (目前數量 < 1) { 目前數量 = 1; if(數量輸入) 數量輸入.value = 目前數量; } const 卡片尺寸樣式 = 'w-32 h-48 md:w-36 md:h-56'; for (let i = 0; i < 目前數量; i++) { const 卡片項目 = document.createElement('div'); 卡片項目.className = `卡片項目 ${卡片尺寸樣式}`; const 卡片背面 = document.createElement('div'); 卡片背面.className = '卡片面 卡片背面 圖像卡片面'; 卡片背面.innerHTML = `<img src="${卡片背面圖片}" alt="卡背 ${i + 1}" loading="lazy">`; const 卡片正面 = document.createElement('div'); 卡片正面.className = '卡片面 卡片正面 圖像卡片面'; 卡片正面.innerHTML = `<img src="" alt="抽到的卡片 ${i + 1}" loading="lazy">`; 卡片項目.appendChild(卡片背面); 卡片項目.appendChild(卡片正面); if (!顯示背面) { 卡片項目.classList.add('已翻面'); } 已抽卡片資料.push({ 編號: null, 元素: 卡片項目, 是否已翻面: !顯示背面 }); 卡片項目.addEventListener('click', () => { 處理卡片點擊(卡片項目, i); }); 卡片容器.appendChild(卡片項目); } }
+          function 處理卡片點擊(卡片項目, 索引) { if (是否正在動畫) return; const 卡片資料 = 已抽卡片資料[索引]; if (卡片資料 && 卡片資料.是否已翻面) { 重置所有卡片為背面(); } else { 執行抽牌與翻面(); } }
+
+          async function 重置所有卡片為背面(之後更新顯示 = true) {
+              if (是否正在動畫) return;
+              const 當前已翻面 = 已抽卡片資料.filter(cd => cd.是否已翻面);
+              if (當前已翻面.length === 0) { if (之後更新顯示) 更新卡片顯示(true); return; }
+              是否正在動畫 = true;
+              if (錯誤訊息區塊) 錯誤訊息區塊.textContent = '';
+
+              const 翻轉承諾 = 當前已翻面.map((卡片資料, 索引) => {
+                  return new Promise(解決 => {
+                      setTimeout(() => {
+                           // *** 在移除 class 的同時播放音效 ***
+                           if (是否啟用音效 && 音效) {
+                               音效.currentTime = 0;
+                               音效.play().catch(錯誤 => console.error("圖像卡片蓋牌音效播放失敗:", 錯誤));
+                           }
+                          卡片資料.元素.classList.remove('已翻面');
+                          卡片資料.是否已翻面 = false;
+                          解決();
+                      }, 索引 * 50); // 錯開播放
+                  });
+              });
+              await Promise.all(翻轉承諾);
+
+              return new Promise(解決 => { setTimeout(() => { 是否正在動畫 = false; if (之後更新顯示) { 更新卡片顯示(true); } 解決(); }, 卡片翻轉動畫時長 + (當前已翻面.length - 1) * 50); });
+          }
+
+          async function 執行抽牌與翻面() {
+              if (是否正在動畫) return;
+              const 是否有已翻面 = 已抽卡片資料.some(cd => cd.是否已翻面);
+              if (是否有已翻面) { await 重置所有卡片為背面(false); }
+              是否正在動畫 = true;
+              if (錯誤訊息區塊) 錯誤訊息區塊.textContent = '';
+              const 洗牌後牌堆 = 洗牌函數([...圖像卡片池]);
+              if (目前數量 > 最大圖像卡片編號) { if(錯誤訊息區塊) 錯誤訊息區塊.textContent = `錯誤：無法抽取超過 ${最大圖像卡片編號} 張可用卡片！`; 是否正在動畫 = false; return; }
+              if (目前數量 > 洗牌後牌堆.length) { if(錯誤訊息區塊) 錯誤訊息區塊.textContent = '錯誤：卡片不足！'; 是否正在動畫 = false; return; }
+              const 新抽的編號 = 洗牌後牌堆.slice(0, 目前數量);
+
+              // *** 移除在這裡播放一次的音效 ***
+              // if (是否啟用音效 && 音效) { 音效.currentTime = 0; 音效.play().catch(錯誤 => console.error("圖像卡片音效播放失敗:", 錯誤)); }
+
+              const 翻轉承諾 = 已抽卡片資料.map((卡片資料, 索引) => {
+                   const 卡片編號 = 新抽的編號[索引];
+                   卡片資料.編號 = 卡片編號;
+                   const 卡片項目 = 卡片資料.元素;
+                   const 正面圖片 = 卡片項目.querySelector('.卡片正面 img');
+                   if (正面圖片) { 正面圖片.src = `${卡片圖片基礎路徑}${卡片編號}.png`; 正面圖片.alt = `卡片 ${卡片編號}`; }
+                   return new Promise(解決 => {
+                       setTimeout(() => {
+                           // *** 在添加 class 的同時播放音效 ***
+                           if (是否啟用音效 && 音效) {
+                               音效.currentTime = 0;
+                               音效.play().catch(錯誤 => console.error("圖像卡片翻牌音效播放失敗:", 錯誤));
+                           }
+                           卡片項目.classList.add('已翻面');
+                           卡片資料.是否已翻面 = true;
+                           解決();
+                       }, 索引 * 80); // 錯開播放
+                   });
+               });
+              await Promise.all(翻轉承諾);
+              setTimeout(() => { 是否正在動畫 = false; }, 卡片翻轉動畫時長 + (已抽卡片資料.length - 1) * 80);
+           }
+
+          減少按鈕?.addEventListener('click', () => { if (目前數量 > 1) { 目前數量--; if(數量輸入) 數量輸入.value = 目前數量; 重置所有卡片為背面(); } });
+          增加按鈕?.addEventListener('click', () => { 目前數量++; if(數量輸入) 數量輸入.value = 目前數量; 重置所有卡片為背面(); });
+          數量輸入?.addEventListener('change', () => { let 新數量 = parseInt(數量輸入.value); if (isNaN(新數量) || 新數量 < 1) 新數量 = 1; 目前數量 = 新數量; 數量輸入.value = 目前數量; 重置所有卡片為背面(); });
+          抽牌按鈕?.addEventListener('click', 執行抽牌與翻面);
+          切換音效按鈕?.addEventListener('click', () => { 是否啟用音效 = !是否啟用音效; if (音效圖標 && 音效文字) { 音效圖標.className = `fas ${是否啟用音效 ? 'fa-volume-up' : 'fa-volume-mute'} mr-2`; 音效文字.textContent = 是否啟用音效 ? '關閉音效' : '開啟音效'; 切換音效按鈕.setAttribute('aria-pressed', String(!是否啟用音效)); } if (!是否啟用音效 && 音效 && !音效.paused) { 音效.pause(); } });
+          初始化圖像卡片池();
+          更新卡片顯示(true);
+    })();
+
+    // --- 簡易計算機邏輯 ---
+    (() => {
+          const 區塊 = document.getElementById('計算機區塊');
+          if (!區塊) return;
+          const 顯示區 = 區塊.querySelector('#計算機顯示');
+          const 所有按鈕 = 區塊.querySelectorAll('.計算機按鈕');
+          const 清除按鈕 = 區塊.querySelector('#計算機清除按鈕');
+          const 等於按鈕 = 區塊.querySelector('#計算機等於按鈕');
+          let 是否為錯誤狀態 = false;
+          function 處理計算機輸入(值) { if (!顯示區) return; if (顯示區.value === "0" || 是否為錯誤狀態) { if (是否為錯誤狀態 && /^[0-9.]$/.test(值)) { 顯示區.value = 值; } else if (!是否為錯誤狀態 && 值 === '.') { 顯示區.value = '0.'; } else if (!是否為錯誤狀態 && /^[1-9]$/.test(值)) { 顯示區.value = 值; } else if (!是否為錯誤狀態 && /^[+\-*/]$/.test(值)) { 顯示區.value = '0' + 值; } else if (值 === '0' && 顯示區.value === '0') { return; } else { 顯示區.value = 值; } 是否為錯誤狀態 = false; } else { const 最後字符 = 顯示區.value.slice(-1); if (/[+\-*/]$/.test(最後字符) && /[+\-*/]$/.test(值)) { 顯示區.value = 顯示區.value.slice(0, -1) + 值; } else { 顯示區.value += 值; } } }
+          所有按鈕.forEach(按鈕 => { 按鈕.addEventListener('click', () => { const 值 = 按鈕.getAttribute('data-value'); if (值 !== "=" && 值 !== "C") { 處理計算機輸入(值); } }); });
+          等於按鈕?.addEventListener('click', () => { if (!顯示區) return; 是否為錯誤狀態 = false; try { let 表達式 = 顯示區.value; if (/[+\-*/]$/.test(表達式)) { 表達式 = 表達式.slice(0, -1); } if (!表達式) { 顯示區.value = "0"; return; } let 結果 = eval(表達式); if (isNaN(結果) || !isFinite(結果)) { throw new Error("無效計算"); } if (Math.abs(結果 % 1) > 1e-10 && String(結果).length > 10) { 結果 = parseFloat(結果.toFixed(8)); } 顯示區.value = 結果; } catch (錯誤) { 顯示區.value = "Error"; 是否為錯誤狀態 = true; } });
+          清除按鈕?.addEventListener('click', () => { if (顯示區) 顯示區.value = "0"; 是否為錯誤狀態 = false; });
+    })();
+
+   // --- 科學計算機邏輯 ---
+    (() => {
+           const 區塊 = document.getElementById('科學計算機區塊');
+           if (!區塊) return;
+           const 顯示區 = 區塊.querySelector('#科學計算機顯示');
+           const 所有按鈕 = 區塊.querySelectorAll('.科學計算機按鈕');
+           const 清除按鈕 = 區塊.querySelector('#科學計算機清除按鈕');
+           const 退格按鈕 = 區塊.querySelector('#科學計算機退格按鈕');
+           const 等於按鈕 = 區塊.querySelector('#科學計算機等於按鈕');
+           const 切換功能按鈕 = 區塊.querySelector('#切換科學功能按鈕');
+           const 功能按鈕區 = 區塊.querySelector('#科學功能按鈕區');
+           let 顯示值 = '0';
+           let 是否為錯誤狀態 = false;
+           function 更新顯示() { if (顯示區) 顯示區.value = 顯示值; }
+           function 計算階乘(數字) { 數字 = parseInt(數字); if (isNaN(數字) || 數字 < 0) return "Error"; if (數字 > 170) return "Infinity"; if (數字 === 0) return 1; let 結果 = 1; for (let i = 數字; i > 1; i--) { 結果 *= i; } return 結果; }
+           function 安全計算(表達式) { 是否為錯誤狀態 = false; try { 表達式 = String(表達式); 表達式 = 表達式.replace(/π/g, 'Math.PI'); 表達式 = 表達式.replace(/e/g, 'Math.E'); 表達式 = 表達式.replace(/(\d+)!/g, (匹配, 數字) => { const 階乘結果 = 計算階乘(數字); if (階乘結果 === "Error") throw new Error("無效階乘輸入"); if (階乘結果 === "Infinity") throw new Error("階乘結果過大"); return String(階乘結果); }); 表達式 = 表達式.replace(/sqrt\(/g, 'Math.sqrt('); 表達式 = 表達式.replace(/sin\(/g, 'Math.sin('); 表達式 = 表達式.replace(/cos\(/g, 'Math.cos('); 表達式 = 表達式.replace(/tan\(/g, 'Math.tan('); 表達式 = 表達式.replace(/asin\(/g, 'Math.asin('); 表達式 = 表達式.replace(/acos\(/g, 'Math.acos('); 表達式 = 表達式.replace(/atan\(/g, 'Math.atan('); 表達式 = 表達式.replace(/log10\(/g, 'Math.log10('); 表達式 = 表達式.replace(/log\(/g, 'Math.log('); if (/[+\-*/.]{2,}/.test(表達式.replace(/\*\*|\.\./g,''))) { throw new Error("無效運算符順序"); } if (/[+\-*/%]$/.test(表達式) && !表達式.endsWith(')')) { 表達式 = 表達式.slice(0, -1); } let 括號平衡 = 0; for (const 字符 of 表達式) { if (字符 === '(') 括號平衡++; else if (字符 === ')') 括號平衡--; if (括號平衡 < 0) throw new Error("括號不平衡"); } if (括號平衡 !== 0) throw new Error("括號不平衡"); const 結果 = Function('"use strict"; return (' + 表達式 + ')')(); if (isNaN(結果) || !isFinite(結果)) { 是否為錯誤狀態 = true; return "Error"; } if (Math.abs(結果 % 1) > 1e-10 && String(結果).includes('.')) { const 精度 = 10; return String(parseFloat(結果.toFixed(精度))); } return String(結果); } catch (錯誤) { console.error("安全計算錯誤:", 錯誤, "表達式:", 表達式); 是否為錯誤狀態 = true; return "Error"; } }
+           function 處理科學計算機輸入(值) { if (顯示值 === "0" || 是否為錯誤狀態) { if (是否為錯誤狀態 && /^[0-9.]$/.test(值)) { 顯示值 = 值; } else if (!是否為錯誤狀態 && 值 === '.') { 顯示值 = '0.'; } else if (!是否為錯誤狀態 && /^[1-9]$/.test(值)) { 顯示值 = 值; } else if (!是否為錯誤狀態 && 值 === '0' && 顯示值 === '0') { return; } else if (!是否為錯誤狀態 && (值.endsWith('(') || 值 === '(' || 值 === '-' || 值 === 'Math.PI' || 值 === 'Math.E')) { 顯示值 = (值 === '-' ? '-' : (值 === '(' ? '(' : 值)); } else if (!是否為錯誤狀態 && /[+*/^%]/.test(值)) { 顯示值 = '0' + 值; } else { 顯示值 = 值; } 是否為錯誤狀態 = false; } else { const 最後字符 = 顯示值.slice(-1); if (/[+\-*/%]$/.test(最後字符) && /[+\-*/%]$/.test(值)) { if (值 === '*' && 最後字符 === '*') { 顯示值 += 值; } else { 顯示值 = 顯示值.slice(0, -1) + 值; } } else if (值 === '.') { const 片段 = 顯示值.split(/[+\-*/()%^]/); if (!片段[片段.length - 1].includes('.')) { 顯示值 += 值; } } else if (值 === '!') { if (/\d|\)$/.test(最後字符)) { 顯示值 += 值; } } else { 顯示值 += 值; } } 更新顯示(); }
+           所有按鈕.forEach(按鈕 => { 按鈕.addEventListener('click', () => { const 值 = 按鈕.getAttribute('data-value'); switch (值) { case '=': if (!是否為錯誤狀態) { 顯示值 = String(安全計算(顯示值)); 更新顯示(); } break; case 'C': 顯示值 = '0'; 是否為錯誤狀態 = false; 更新顯示(); break; case 'Backspace': if (!是否為錯誤狀態) { if (顯示值.length > 1) { 顯示值 = 顯示值.slice(0, -1); } else { 顯示值 = '0'; } } else { 顯示值 = '0'; 是否為錯誤狀態 = false; } 更新顯示(); break; default: 處理科學計算機輸入(值); break; } }); });
+           顯示區?.addEventListener('input', (事件) => { 顯示值 = 事件.target.value || '0'; 是否為錯誤狀態 = false; 更新顯示(); });
+           顯示區?.addEventListener('keypress', (事件) => { if (事件.key === 'Enter') { 事件.preventDefault(); if (!是否為錯誤狀態) { 顯示值 = String(安全計算(顯示值)); 更新顯示(); } } });
+           切換功能按鈕?.addEventListener('click', () => { if (功能按鈕區) { const 是否隱藏 = 功能按鈕區.classList.toggle('hidden'); 切換功能按鈕?.setAttribute('aria-expanded', String(!是否隱藏)); 切換功能按鈕?.classList.toggle('bg-purple-700', !是否隱藏); } });
+           更新顯示();
+    })();
+
+  }); // DOMContentLoaded 結束
+</script>
+</body>
+</html>

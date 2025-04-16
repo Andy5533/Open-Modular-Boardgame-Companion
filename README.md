@@ -6,14 +6,12 @@
 所有模塊演示網站: https://andy5533.github.io/Open-Modular-Boardgame-Companion/PLAYGROUND/PLAYGROUND.html
 
 項目介紹3d網站: https://andy5533.github.io/Open-Modular-Boardgame-Companion/PLAYGROUND/PLAYGROUND3d.html
----
+
 
 ## 簡介
 
 開源模組化桌遊伴侶是一個美麗桌遊配套小工具模塊化網站，目的是利用可適配不同桌遊的模塊化特性讓桌遊玩起來更簡單好玩。
 透過此平臺，桌遊玩家可以在遊戲進行中使用網頁工具輕鬆記錄分數、模擬骰子擲出的結果以及運用虛擬計算機進行快速計算或用自由模組做到其他操作，從而提昇遊戲體驗。
-
----
 ## 目錄
 
 - [簡介](#簡介)

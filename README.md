@@ -1,6 +1,3 @@
-Okay, let's enhance the visual appeal and structure of your README using Markdown best practices. I'll incorporate headings, lists, code block formatting, emphasis, and some subtle visual elements like emojis.
-
-```markdown
 # ✨ 開源模組化桌遊伴侶 ✨
 
 ![插圖](https://github.com/user-attachments/assets/76e7bdcf-9d4a-4cd3-bb9c-5bd1f79f7fc9)
@@ -60,11 +57,11 @@ Okay, let's enhance the visual appeal and structure of your README using Markdow
 
 ## 🎨 視覺與動畫效果
 
-平台採用**簡潔細緻**的視覺設計與**流暢動效**，帶來愉悅的使用體驗：
+平臺採用**簡潔細緻**的視覺設計與**流暢動效**，帶來愉悅的使用體驗：
 
 *   **✨ 極簡風格:** 介面設計美觀且專注核心功能，易於上手。
 *   **💧 動感模糊背景:** 精心設計的背景模糊動畫，增添視覺層次感與現代感。
-*   **🎬 細緻過渡動畫:** 從按鈕懸停到模塊切換，交互細節均有平滑動畫，提升操作體驗。
+*   **🎬 細緻過渡動畫:** 從按鈕懸停到模塊切換，交互細節均有平滑動畫，提昇操作體驗。
 
 ---
 
@@ -111,7 +108,7 @@ Okay, let's enhance the visual appeal and structure of your README using Markdow
 
 ## 🧩 如何新增自訂模塊
 
-本平台支持**自由擴展**，您可以根據桌遊的特殊需求添加自己的模塊。以下是詳細步驟：
+本平臺支持**自由擴展**，您可以根據桌遊的特殊需求添加自己的模塊。以下是詳細步驟：
 
 ### 1. 🏗️ 建立模塊結構 (HTML)
 
@@ -166,7 +163,7 @@ Okay, let's enhance the visual appeal and structure of your README using Markdow
 
 **解說:**
 
-*   **容器 (`<section>` & `div`)**: 使用 `id` 標識，`內容容器` class 統一風格，Tailwind 類控制內部佈局。
+*   **容器 (`<section>` & `div`)**: 使用 `id` 標識，`內容容器` class 統一風格，Tailwind 類控製內部佈局。
 *   **標題與顯示框**: 清晰標示，使用 `<input readonly>` 作為顯示區。
 *   **按鈕區域**: 使用 `grid` 佈局，複用 `計算機按鈕` 相關樣式，`data-action` 用於 JS 識別功能。
 
@@ -186,7 +183,7 @@ Okay, let's enhance the visual appeal and structure of your README using Markdow
 
 ### 2. ⚡ 添加模塊功能 (JavaScript)
 
-使用 **立即調用函數表達式 (IIFE)** 封裝每個模塊的邏輯，避免全局污染。
+使用 **立即調用函數表達式 (IIFE)** 封裝每個模塊的邏輯，避免全局汙染。
 
 **範例 JavaScript (IIFE 結構):**
 
@@ -243,7 +240,7 @@ Okay, let's enhance the visual appeal and structure of your README using Markdow
 5.  **功能邏輯**: 根據 `data-action` 執行操作。
 6.  **初始化**: 可在此處執行模塊加載時的設置。
 
-### 3. 🔗 整合到您的平台中
+### 3. 🔗 整合到您的平臺中
 
 1.  **添加 HTML**: 將 `<section>...</section>` 複製到主 HTML 文件的 `<main>` 或其他容器內。
 2.  **添加 JavaScript**:
@@ -339,4 +336,3 @@ Okay, let's enhance the visual appeal and structure of your README using Markdow
 ---
 
 **感謝您使用開源模組化桌遊伴侶！期待您的參與與貢獻，共同打造更好的桌遊數位化體驗！**
-```

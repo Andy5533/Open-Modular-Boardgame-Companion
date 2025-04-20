@@ -1,0 +1,137 @@
+<template>
+  <!-- scrollable="true" REMOVED -->
+  <div class="index-page">
+
+    <!-- Single container for all content -->
+    <div class="main-content-stack">
+
+        <!-- Titles Section -->
+        <div class="title-section">
+            <text class="title-zh">開源模組化桌遊伴侶</text>
+            <text class="title-en">Open-Modular-Boardgame-Companion</text>
+        </div>
+
+        <!-- Navigation Buttons Section -->
+        <div class="nav-buttons-section">
+          <input class="nav-button" type="button" value="骰子" onclick="goToDice" />
+          <input class="nav-button" type="button" value="抽卡" onclick="goToCards" />
+          <input class="nav-button" type="button" value="計算機" onclick="goToCalc" />
+          <!-- About button moved inside the main stack -->
+          <input class="about-button" type="button" value="關於" onclick="goToDetail" />
+        </div>
+
+    </div> <!-- End of .main-content-stack -->
+
+  </div> <!-- End of .index-page -->
+</template>
+
+<script>
+import router from "@system.router";
+import vibrator from '@system.vibrator';
+
+// Script remains the same
+export default {
+  private: {},
+  goToDice() {
+    vibrator.vibrate({ mode: 'short' });
+    router.push({ uri: "/pages/dice" });
+  },
+  goToCards() {
+    vibrator.vibrate({ mode: 'short' });
+    router.push({ uri: "/pages/cards0" }); // Navigates to the placeholder page
+  },
+  goToCalc() {
+    vibrator.vibrate({ mode: 'short' });
+    router.push({ uri: "/pages/calculator" });
+  },
+  goToDetail() {
+    vibrator.vibrate({ mode: 'short' });
+    router.push({ uri: "/pages/detail" });
+  }
+}
+</script>
+
+<style>
+/* Overall page container */
+.index-page {
+  flex: 1;
+  background-color: #000000; /* Base background color */
+  flex-direction: column;
+  padding: 15px 10px 30px 10px; /* Adjust bottom padding to ensure visibility */
+  align-items: center;
+  box-sizing: border-box;
+  /* Ensure content does not exceed screen height as scrolling is not supported */
+  /* overflow: hidden; /* Might be needed if content still tries to overflow */
+
+  /* --- Background Image Styles --- */
+  /* !!! IMPORTANT: VERIFY THIS PATH AND FILENAME !!! */
+  background-image: url('/common/images/background/background.png');
+  background-size: 200px 400px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  /* --- End Background Image Styles --- */
+}
+
+/* Container for all stacked content */
+.main-content-stack {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    /* Content should fit vertically */
+}
+
+/* Section for titles */
+.title-section {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 55px;
+    margin-bottom: 30px;
+}
+
+.title-zh {
+  font-size: 22px;
+  text-align: center;
+  color: #ffffff;
+  margin-bottom: 5px;
+}
+
+.title-en {
+  font-size: 14px;
+  text-align: center;
+  color: #cccccc;
+}
+
+/* Section for navigation buttons AND about button */
+.nav-buttons-section {
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Navigation buttons */
+.nav-button {
+  width: 160px;
+  height: 55px;
+  margin-bottom: 20px; /* Space between nav buttons */
+  border-radius: 28px;
+  background-color: #333333;
+  font-size: 20px;
+  color: #ffffff;
+}
+
+/* About Button styling (now part of the nav section flow) */
+.about-button {
+  width: 150px;
+  height: 55px;
+  border-radius: 28px;
+  background-color: #007aff; /* Blue color */
+  color: #ffffff;
+  font-size: 18px;
+  text-align: center;
+  line-height: 55px;
+  /* Margin above the about button */
+  margin-top: 30px;
+}
+
+</style>

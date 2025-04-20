@@ -1,0 +1,114 @@
+<template>
+  <div class="tool-page">
+    <input class="back-button" type="button" value="< 返回" onclick="goBack" />
+    <div class="card-display-area">
+      <div class="card-container">
+        <div class="card-content-wrapper card-front-wrapper">
+          <div class="card-row top-row">
+            <div class="corner {{currentCard.colorClass}}">
+               <text class="corner-rank">{{ currentCard.rank }}</text>
+               <image class="corner-suit" src="{{ currentCard.suitImage }}"></image>
+            </div>
+          </div>
+          <div class="card-row center-area">
+             <image class="center-suit" src="{{ currentCard.suitImage }}"></image>
+          </div>
+          <div class="card-row bottom-row">
+             <div class="corner bottom-right-corner {{currentCard.colorClass}}">
+               <text class="corner-rank">{{ currentCard.rank }}</text>
+               <image class="corner-suit" src="{{ currentCard.suitImage }}"></image>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <input class="action-button" type="button" value="再抽一張" onclick="drawAndUpdateCard" />
+  </div>
+</template>
+
+<script>
+import router from "@system.router";
+import vibrator from '@system.vibrator';
+
+// --- Deck Management ---
+let sharedDeck = [];
+let deckInitialized = false;
+const suitsData = [
+    { symbol: '♠', image: '/common/images/cards/黑桃.png', colorClass: 'black' },
+    { symbol: '♥', image: '/common/images/cards/紅心.png', colorClass: 'red' },
+    { symbol: '♦', image: '/common/images/cards/方塊.png', colorClass: 'red' },
+    { symbol: '♣', image: '/common/images/cards/梅花.png', colorClass: 'black' }
+];
+const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+function createSharedDeck() { /* ... create deck logic ... */
+    sharedDeck = [];
+    for (const suitInfo of suitsData) { for (const rank of ranks) { sharedDeck.push({ rank: rank, suitInfo: suitInfo }); } }
+    deckInitialized = true; console.log("Shared deck created, size:", sharedDeck.length);
+}
+function shuffleSharedDeck() { /* ... shuffle logic ... */
+    if (!deckInitialized) createSharedDeck();
+    for (let i = sharedDeck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sharedDeck[i], sharedDeck[j]] = [sharedDeck[j], sharedDeck[i]]; }
+    console.log("Shared deck shuffled");
+}
+function drawFromSharedDeck() { /* ... draw logic ... */
+    if (!deckInitialized || sharedDeck.length === 0) { console.log("Deck empty or not init, recreating/shuffling..."); createSharedDeck(); shuffleSharedDeck(); }
+    if (sharedDeck.length === 0) return null;
+    return sharedDeck.pop();
+}
+// --- End Deck Management ---
+
+export default {
+  private: {
+    currentCard: { rank: '', suitImage: '', colorClass: 'black' }
+  },
+  onInit() {
+    if (!deckInitialized) { shuffleSharedDeck(); }
+    this.drawAndUpdateCard(false);
+  },
+  goBack() {
+    vibrator.vibrate({ mode: 'short' });
+    router.back();
+  },
+  drawAndUpdateCard(shouldVibrate = true) {
+     if (shouldVibrate) { vibrator.vibrate({ mode: 'short' }); }
+     const drawnCardData = drawFromSharedDeck();
+     if (drawnCardData) {
+       this.currentCard.rank = drawnCardData.rank;
+       this.currentCard.suitImage = drawnCardData.suitInfo.image;
+       this.currentCard.colorClass = drawnCardData.suitInfo.colorClass;
+     } else {
+       this.currentCard.rank = 'ERR';
+       this.currentCard.suitImage = '';
+       this.currentCard.colorClass = 'red';
+     }
+  }
+}
+</script>
+
+<style>
+.tool-page{
+  flex:1;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 10px;
+  background-color:#000;
+  /* Background Image */
+  background-image: url('/common/images/background/background.png');
+  background-size: 200px 400px; /* Updated size */
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+.back-button{width:80px;height:35px;border-radius:18px;background-color:#222;font-size:16px;color:#ccc;align-self:flex-start;margin-bottom:10px}
+.card-display-area{flex-grow:1;width:100%;justify-content:center;align-items:center}
+.card-container{width:140px;height:200px;border-radius:8px;border:1px solid #aaa;overflow:hidden;background-color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2);display:flex;justify-content:center;align-items:center}
+.card-content-wrapper{width:100%;height:100%;display:flex}
+.card-front-wrapper{flex-direction:column;padding:8px;box-sizing:border-box}
+.card-row{display:flex;width:100%}.top-row{justify-content:flex-start}
+.center-area{flex-grow:1;justify-content:center;align-items:center}
+.bottom-row{justify-content:flex-end}.corner{display:flex;flex-direction:column;align-items:center;line-height:1}
+.bottom-right-corner{transform:rotate(180deg)}.corner-rank{font-size:24px;font-weight:700}
+.corner-suit{width:18px;height:18px;margin-top:2px}.center-suit{width:60px;height:60px}
+.red{color:#ff3b30}.black{color:#000}
+.action-button{width:150px;height:55px;border-radius:28px;background-color:#5856d6;font-size:20px;color:#fff;margin-top:20px;margin-bottom:50px}
+</style>

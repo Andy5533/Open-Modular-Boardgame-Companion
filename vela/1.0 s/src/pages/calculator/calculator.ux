@@ -1,0 +1,164 @@
+<template>
+  <!-- scrollable="true" REMOVED -->
+  <div class="calculator-page">
+    <input class="back-button" type="button" value="< 返回" onclick="goBack" />
+    <div class="display-area">
+      <text class="calc-display-text">{{ displayValue }}</text>
+    </div>
+    <div class="secondary-controls">
+        <input class="secondary-button number-style" type="button" value="." onclick="appendNumber('.')" />
+        <input class="secondary-button delete-style" type="button" value="←" onclick="deleteLast()" />
+    </div>
+    <div class="calc-buttons">
+      <!-- Row 1: Numbers -->
+      <input class="calc-button number" type="button" value="7" onclick="appendNumber('7')" />
+      <input class="calc-button number" type="button" value="8" onclick="appendNumber('8')" />
+      <input class="calc-button number" type="button" value="9" onclick="appendNumber('9')" />
+      <!-- Row 2: Numbers -->
+      <input class="calc-button number" type="button" value="4" onclick="appendNumber('4')" />
+      <input class="calc-button number" type="button" value="5" onclick="appendNumber('5')" />
+      <input class="calc-button number" type="button" value="6" onclick="appendNumber('6')" />
+      <!-- Row 3: Numbers -->
+      <input class="calc-button number" type="button" value="1" onclick="appendNumber('1')" />
+      <input class="calc-button number" type="button" value="2" onclick="appendNumber('2')" />
+      <input class="calc-button number" type="button" value="3" onclick="appendNumber('3')" />
+      <!-- Row 4: +, 0, = -->
+      <input class="calc-button operator" type="button" value="+" onclick="setOperator('+')" />
+      <input class="calc-button number" type="button" value="0" onclick="appendNumber('0')" />
+      <input class="calc-button equals" type="button" value="=" onclick="calculate()" />
+      <!-- Row 5: -, *, / -->
+      <input class="calc-button operator" type="button" value="-" onclick="setOperator('-')" />
+      <input class="calc-button operator" type="button" value="*" onclick="setOperator('*')" />
+      <input class="calc-button operator" type="button" value="/" onclick="setOperator('/')" />
+      <!-- Row 6: √, x², xʸ -->
+      <input class="calc-button function" type="button" value="√" onclick="applyFunction('sqrt')" />
+      <input class="calc-button function" type="button" value="x²" onclick="applyPowerFunction('square')" />
+      <input class="calc-button function" type="button" value="xʸ" onclick="setOperator('pow')" />
+      <!-- Row 7: sin, cos, tan -->
+      <input class="calc-button function" type="button" value="sin" onclick="applyTrigFunction('sin')" />
+      <input class="calc-button function" type="button" value="cos" onclick="applyTrigFunction('cos')" />
+      <input class="calc-button function" type="button" value="tan" onclick="applyTrigFunction('tan')" />
+      <!-- Row 8: log, ln, n! -->
+      <input class="calc-button function" type="button" value="log" onclick="applyLogFunction('log10')" />
+      <input class="calc-button function" type="button" value="ln" onclick="applyLogFunction('ln')" />
+      <input class="calc-button function" type="button" value="n!" onclick="applyFactorial()" />
+      <!-- Row 9: C, π, e -->
+      <input class="calc-button clear" type="button" value="C" onclick="clearCalc()" />
+      <input class="calc-button function" type="button" value="π" onclick="insertConstant('pi')" />
+      <input class="calc-button function" type="button" value="e" onclick="insertConstant('e')" />
+      <!-- Row 10: Inverse Trig -->
+      <input class="calc-button function small-text" type="button" value="sin⁻¹" onclick="applyInvTrigFunction('asin')" />
+      <input class="calc-button function small-text" type="button" value="cos⁻¹" onclick="applyInvTrigFunction('acos')" />
+      <input class="calc-button function small-text" type="button" value="tan⁻¹" onclick="applyInvTrigFunction('atan')" />
+      <!-- Row 11: Reciprocal, Percent, x³ -->
+      <input class="calc-button function" type="button" value="1/x" onclick="applyReciprocal()" />
+      <input class="calc-button function" type="button" value="%" onclick="applyPercent()" />
+      <input class="calc-button function" type="button" value="x³" onclick="applyPowerFunction('cube')" />
+       <!-- Row 12: Cube Root -->
+      <input class="calc-button function" type="button" value="³√" onclick="applyFunction('cbrt')" />
+       <!-- Placeholders to fill last row -->
+      <input class="calc-button placeholder" type="button" value="" disabled="true"/>
+      <input class="calc-button placeholder" type="button" value="" disabled="true"/>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router";
+import vibrator from '@system.vibrator';
+
+const PI_VALUE = Math.PI;
+const E_VALUE = Math.E;
+const MAX_FACTORIAL_INPUT = 69;
+
+export default {
+  private: { /* ... private data ... */
+    displayValue: '0', operand1: null, operator: null, waitingForOperand2: false
+  },
+  goBack() { /* ... goBack ... */
+    vibrator.vibrate({ mode: 'short' }); router.back();
+   },
+  _formatResult(result) { /* ... formatResult ... */
+    let display='Error';if(result===Infinity||result===-Infinity){display='Infinity'}else if(!isFinite(result)){display='Error'}else{if(Math.abs(result)>99999999||(Math.abs(result)<.000001&&result!==0)){display=result.toExponential(3)}else{const rounded=parseFloat(result.toPrecision(7));display=String(rounded)}if(display.length>8){display=result.toExponential(3);if(display.length>8){display=result.toExponential(2);if(display.length>8){display='Error'}}}}if(display==='-0')display='0';return display
+  },
+  appendNumber(num) { /* ... appendNumber ... */
+    vibrator.vibrate({ mode: 'short' }); if (this.displayValue === 'Error' || this.displayValue === 'Infinity') { this.displayValue = num; this._resetStateAfterCalc(); return; } if (!this.waitingForOperand2 && this.displayValue.length >= 8 && num !== '.') { return; } if (num === '.' && this.displayValue.includes('.')) { return; } if (this.waitingForOperand2) { this.displayValue = num; this.waitingForOperand2 = false; } else if (this.displayValue === '0' && num !== '.') { this.displayValue = num; } else { if ((this.displayValue + num).length <= 8) { this.displayValue = this.displayValue + num; } }
+  },
+  deleteLast() { /* ... deleteLast ... */
+    vibrator.vibrate({ mode: 'short' }); if (this.waitingForOperand2) { return; } if (this.displayValue === 'Error' || this.displayValue === 'Infinity') { this.clearCalc(); return; } if (this.displayValue.length === 1 || (this.displayValue.startsWith('-') && this.displayValue.length === 2)) { this.displayValue = '0'; } else { this.displayValue = this.displayValue.slice(0, -1); }
+   },
+  clearCalc() { /* ... clearCalc ... */
+    vibrator.vibrate({ mode: 'short' }); this.displayValue = '0'; this.operand1 = null; this.operator = null; this.waitingForOperand2 = false;
+   },
+  setOperator(op) { /* ... setOperator ... */
+    vibrator.vibrate({ mode: 'short' }); if (this.operator !== null && !this.waitingForOperand2) { this.calculate(false); if (this.displayValue === 'Error' || this.displayValue === 'Infinity') { return; } } const currentVal = parseFloat(this.displayValue); if (!isNaN(currentVal)) { this.operand1 = currentVal; this.operator = op; this.waitingForOperand2 = true; } else { this.clearCalc(); }
+   },
+  calculate(shouldVibrate = true) { /* ... calculate ... */
+    if (shouldVibrate) vibrator.vibrate({ mode: 'short' }); if (this.operator === null || this.waitingForOperand2 || this.operand1 === null) { return; } const operand2 = parseFloat(this.displayValue); if (isNaN(this.operand1) || isNaN(operand2)) { this.displayValue = 'Error'; this._resetStateAfterCalc(); return; } let result = NaN; switch (this.operator) { case '+': result = this.operand1 + operand2; break; case '-': result = this.operand1 - operand2; break; case '*': result = this.operand1 * operand2; break; case '/': result = (operand2 === 0) ? NaN : this.operand1 / operand2; break; case 'pow': result = Math.pow(this.operand1, operand2); break; default: result = NaN; break; } this.displayValue = this._formatResult(result); this._resetStateAfterCalc();
+  },
+  _resetStateAfterCalc() { /* ... resetStateAfterCalc ... */
+      this.operand1 = null; this.operator = null; this.waitingForOperand2 = false;
+   },
+  _applyUnaryFunction(calculateFunc) { /* ... applyUnaryFunction ... */
+      const currentValue = parseFloat(this.displayValue); if (isNaN(currentValue)) { this.displayValue = 'Error'; this._resetStateAfterCalc(); return; } const result = calculateFunc(currentValue); this.displayValue = this._formatResult(result); this._resetStateAfterCalc();
+   },
+  applyFunction(funcName) { /* ... applyFunction ... */
+    vibrator.vibrate({ mode: 'short' }); let func = (val) => NaN; if (funcName === 'sqrt') { func = (val) => (val < 0) ? NaN : Math.sqrt(val); } else if (funcName === 'cbrt') { func = Math.cbrt; } this._applyUnaryFunction(func);
+   },
+  applyPowerFunction(powerType) { /* ... applyPowerFunction ... */
+    vibrator.vibrate({ mode: 'short' }); if (powerType === 'square') { this._applyUnaryFunction((val) => val * val); } else if (powerType === 'cube') { this._applyUnaryFunction((val) => val * val * val); }
+   },
+  applyTrigFunction(funcName) { /* ... applyTrigFunction ... */
+    vibrator.vibrate({ mode: 'short' }); let func = (val) => NaN; if (funcName === 'sin') { func = Math.sin; } else if (funcName === 'cos') { func = Math.cos; } else if (funcName === 'tan') { func = Math.tan; } this._applyUnaryFunction(func);
+   },
+   applyInvTrigFunction(funcName) { /* ... applyInvTrigFunction ... */
+    vibrator.vibrate({ mode: 'short' }); let func = (val) => NaN; if (funcName === 'asin') { func = (val) => (val < -1 || val > 1) ? NaN : Math.asin(val); } else if (funcName === 'acos') { func = (val) => (val < -1 || val > 1) ? NaN : Math.acos(val); } else if (funcName === 'atan') { func = Math.atan; } this._applyUnaryFunction(func);
+   },
+  applyLogFunction(funcName) { /* ... applyLogFunction ... */
+    vibrator.vibrate({ mode: 'short' }); let func = (val) => NaN; if (funcName === 'log10') { func = (val) => (val <= 0) ? NaN : Math.log10(val); } else if (funcName === 'ln') { func = (val) => (val <= 0) ? NaN : Math.log(val); } this._applyUnaryFunction(func);
+   },
+   applyFactorial() { /* ... applyFactorial ... */
+    vibrator.vibrate({ mode: 'short' }); const currentValue = parseFloat(this.displayValue); if (isNaN(currentValue) || currentValue < 0 || currentValue !== Math.floor(currentValue) || currentValue > MAX_FACTORIAL_INPUT) { this.displayValue = 'Error'; this._resetStateAfterCalc(); return; } if (currentValue === 0) { this.displayValue = '1'; this._resetStateAfterCalc(); return; } let result = 1; try { for (let i = 2; i <= currentValue; i++) { result *= i; if (!isFinite(result)) { break; } } } catch (e) { result = Infinity; } this.displayValue = this._formatResult(result); this._resetStateAfterCalc();
+   },
+  applyReciprocal() { /* ... applyReciprocal ... */
+    vibrator.vibrate({ mode: 'short' }); this._applyUnaryFunction((val) => (val === 0) ? NaN : 1 / val);
+   },
+  applyPercent() { /* ... applyPercent ... */
+    vibrator.vibrate({ mode: 'short' }); this._applyUnaryFunction((val) => val / 100);
+   },
+  insertConstant(constName) { /* ... insertConstant ... */
+    vibrator.vibrate({ mode: 'short' }); let constValue = NaN; if (constName === 'pi') { constValue = PI_VALUE; } else if (constName === 'e') { constValue = E_VALUE; } this.displayValue = this._formatResult(constValue); this._resetStateAfterCalc();
+   }
+}
+</script>
+
+<style>
+.calculator-page{
+  flex:1;
+  flex-direction:column;
+  background-color:#000;
+  padding:15px 5px 20px 5px;
+  align-items:center;
+  /* Background Image */
+  background-image: url('/common/images/background/background.png');
+  background-size: 200px 400px; /* Updated size */
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+.back-button{width:80px;height:35px;border-radius:18px;background-color:#222;font-size:16px;color:#ccc;margin-bottom:10px;align-self:flex-start}
+.display-area{flex-direction:column;width:100%;align-items:flex-end;margin-bottom:10px}
+.calc-display-text{width:100%;height:60px;font-size:36px;color:#fff;text-align:right;padding:0 10px;border-radius:5px;line-height:60px}
+.secondary-controls{flex-direction:row;justify-content:flex-end;width:100%;padding-right:10px;margin-top:5px;margin-bottom:10px}
+.secondary-button{width:45px;height:35px;border-radius:17.5px;font-size:18px;line-height:35px;margin-left:10px;text-align:center;font-weight:700}
+.secondary-button.number-style{background-color:#333;color:#fff}
+.secondary-button.delete-style{background-color:#555;color:#fff}
+.calc-buttons{flex-direction:row;flex-wrap:wrap;justify-content:center;width:183px}
+.calc-button{width:55px;height:55px;border-radius:27.5px;font-size:18px;font-weight:700;color:#fff;margin:3px;text-align:center;line-height:55px}
+.calc-button.number{background-color:#f5f5f5}
+.calc-button.operator{background-color:#ff9500}
+.calc-button.equals{background-color:#ff9500}
+.calc-button.function{background-color:#a5a5a5;color:#000}
+.calc-button.clear{background-color:#a5a5a5;color:#000}
+.calc-button.small-text{font-size:15px;font-weight:400}
+.calc-button.placeholder{background-color:transparent;border:none}
+</style>

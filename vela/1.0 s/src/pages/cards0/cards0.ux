@@ -1,0 +1,56 @@
+<template>
+  <div class="tool-page">
+    <input class="back-button" type="button" value="< 返回" onclick="goBack" />
+    <div class="card-display-area">
+      <div class="card-container placeholder-bg">
+          <div class="card-content-wrapper placeholder-wrapper">
+             <text class="placeholder-text">?</text>
+          </div>
+      </div>
+    </div>
+    <input class="action-button" type="button" value="抽卡" onclick="goToDrawPage" />
+  </div>
+</template>
+
+<script>
+import router from "@system.router";
+import vibrator from '@system.vibrator';
+
+export default {
+  private: {},
+  goBack() {
+    vibrator.vibrate({ mode: 'short' });
+    router.back();
+  },
+  goToDrawPage() {
+    vibrator.vibrate({ mode: 'short' });
+    router.replace({
+      uri: "/pages/cards"
+    });
+  }
+}
+</script>
+
+<style>
+.tool-page{
+  flex:1;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 10px;
+  background-color:#000;
+  /* Background Image */
+  background-image: url('/common/images/background/background.png');
+  background-size: 200px 400px; /* Updated size */
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+.back-button{width:80px;height:35px;border-radius:18px;background-color:#222;font-size:16px;color:#ccc;align-self:flex-start;margin-bottom:10px}
+.card-display-area{flex-grow:1;width:100%;justify-content:center;align-items:center}
+.card-container{width:140px;height:200px;border-radius:8px;border:1px solid #aaa;overflow:hidden;background-color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2);display:flex;justify-content:center;align-items:center}
+.placeholder-bg{background-color:#fff}
+.card-content-wrapper{width:100%;height:100%;display:flex}
+.placeholder-wrapper{justify-content:center;align-items:center}
+.placeholder-text{font-size:100px;color:#ccc;font-weight:700}
+.action-button{width:150px;height:55px;border-radius:28px;background-color:#5856d6;font-size:20px;color:#fff;margin-top:20px;margin-bottom:50px}
+</style>

@@ -1,0 +1,67 @@
+<template>
+  <div class="tool-page">
+    <input class="back-button" type="button" value="< 返回" onclick="goBack" />
+    <div class="result-display">
+      <image id="diceImage" class="dice-image {{isSpinning ? 'spinning' : ''}}" src="{{diceImageSrc}}"></image>
+      <text class="dice-number-text" show="{{!isSpinning && diceNumber !== ''}}">{{ diceNumber }}</text>
+    </div>
+    <input class="action-button" type="button" value="擲骰子" onclick="rollDice" />
+  </div>
+</template>
+
+<script>
+import router from "@system.router";
+import vibrator from '@system.vibrator';
+
+export default {
+  private: {
+    diceImageSrc: '/common/images/dice/骰.png',
+    isSpinning: false,
+    rollTimeout: null,
+    diceNumber: ''
+  },
+  goBack() {
+    vibrator.vibrate({ mode: 'short' });
+    router.back();
+  },
+  rollDice() {
+    if (this.isSpinning) { return; }
+    vibrator.vibrate({ mode: 'long' });
+    this.isSpinning = true;
+    this.diceNumber = '';
+    this.diceImageSrc = '/common/images/dice/骰轉.png';
+    if (this.rollTimeout) { clearTimeout(this.rollTimeout); }
+    this.rollTimeout = setTimeout(() => {
+      const result = Math.floor(Math.random() * 6) + 1;
+      this.diceImageSrc = `/common/images/dice/${result}.png`;
+      this.diceNumber = result;
+      this.isSpinning = false;
+      this.rollTimeout = null;
+    }, 1000);
+  },
+  onDestroy() {
+     if (this.rollTimeout) { clearTimeout(this.rollTimeout); }
+  }
+}
+</script>
+
+<style>
+.tool-page{
+  flex:1;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 10px;
+  background-color:#000;
+  /* Background Image */
+  background-image: url('/common/images/background/background.png');
+  background-size: 200px 400px; /* Updated size */
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+.back-button{width:80px;height:35px;border-radius:18px;background-color:#222;font-size:16px;color:#ccc;align-self:flex-start}
+.result-display{flex-grow:1;flex-direction:column;justify-content:center;align-items:center;margin-bottom:20px}
+.dice-image{width:150px;height:150px}
+.dice-number-text{font-size:48px;color:#fff;font-weight:700;margin-top:10px}
+.action-button{width:150px;height:55px;border-radius:28px;background-color:#007aff;font-size:20px;color:#fff;margin-bottom:50px}
+</style>
